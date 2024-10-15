@@ -1,9 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_serializer import SerializerMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy #type: ignore
+from sqlalchemy.ext.hybrid import hybrid_property #type: ignore
+from sqlalchemy_serializer import SerializerMixin  #type: ignore
+from werkzeug.security import generate_password_hash, check_password_hash  #type: ignore
 from datetime import datetime
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates # type: ignore
 
 db = SQLAlchemy()
 
