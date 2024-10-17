@@ -1,23 +1,34 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import LandingPage from './components/LandingPage';
-import LoginPage from './components/LoginPage';
-import RegisterPage from './components/RegisterPage';
-import ResetPasswordPage from './components/ResetPasswordPage';
+import Login from './components/Login';
+import ResetPassword from './components/ResetPassword';
+import Dashboard from './components/Dashboard';
+import LearningMaterials from './components/LearningMaterials';
+import Profile from './components/Profile';
+import Reports from './components/Reports';
+import Notifications from './components/Notifications';
+import PrivateRoute from './components/PrivateRoute';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
-function App() {
+const App = () => {
   return (
     <Router>
-      <Navbar />
-      <Switch>
-        <Route path="/" exact component={LandingPage} />
-        <Route path="/login" component={LoginPage} />
-        <Route path="/register" component={RegisterPage} />
-        <Route path="/reset-password" component={ResetPasswordPage} />
-      </Switch>
+      <div className="app-container">
+        <Navbar />
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/reset-password" component={ResetPassword} />
+          <PrivateRoute path="/dashboard" component={Dashboard} />
+          <PrivateRoute path="/learning-materials" component={LearningMaterials} />
+          <PrivateRoute path="/profile" component={Profile} />
+          <PrivateRoute path="/reports" component={Reports} />
+          <PrivateRoute path="/notifications" component={Notifications} />
+        </Switch>
+        <Footer />
+      </div>
     </Router>
   );
-}
+};
 
 export default App;
