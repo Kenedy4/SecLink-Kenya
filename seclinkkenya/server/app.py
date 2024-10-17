@@ -14,13 +14,13 @@ app = Flask(__name__)
 app.config.from_object(Config)
 # Initialize SQLAlchemy
 
-# Initialize extensions
-# db = SQLAlchemy()
+
 migrate = Migrate(app, db)
 bcrypt = Bcrypt(app)
 api = Api(app)
 
-
+# Initialize extensions
+# db = SQLAlchemy()
 db.init_app(app)
 # Directory for saving uploaded files
 UPLOAD_FOLDER = 'uploads'

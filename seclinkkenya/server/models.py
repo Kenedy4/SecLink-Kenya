@@ -3,6 +3,7 @@ from sqlalchemy.ext.hybrid import hybrid_property #type: ignore
 from sqlalchemy_serializer import SerializerMixin  #type: ignore
 from werkzeug.security import generate_password_hash, check_password_hash  #type: ignore
 from datetime import datetime
+
 from sqlalchemy.orm import validates # type: ignore
 
 db = SQLAlchemy()
