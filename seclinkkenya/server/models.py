@@ -150,6 +150,10 @@ class Parent(db.Model, SerializerMixin):
 
     # Relationship to children (Students)
     children = db.relationship('Student', back_populates='parent')
+    
+    # Relationship to Notifications
+    notifications = db.relationship('Notification', back_populates='parent', cascade="all, delete-orphan")
+
 
     @hybrid_property
     def password(self):
@@ -202,6 +206,11 @@ class Notification(db.Model, SerializerMixin):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     # students = db.relationship('Student', secondary=student_notification, backref='notifications')
+        # Foreign key to Parent
+    parent_id = db.Column(db.Integer, db.ForeignKey('parent.id'), nullable=False)
+
+    # Relationship to Parent
+    parent = db.relationship('Parent', back_populates='notifications')
 
 
 class LearningMaterial(db.Model, SerializerMixin):
