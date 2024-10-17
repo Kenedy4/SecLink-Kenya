@@ -28,17 +28,22 @@ student_notification = db.Table('student_notification',
 class Student(db.Model, SerializerMixin):
     __tablename__ = 'student'
     
-    serialize_only = ('id', 'name', 'dob', 'class_id', 'teacher_id')
+    serialize_only = ('id', 'name', 'dob', 'class_id', 'teacher_id', 'parent_id')
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     dob = db.Column(db.Date, nullable=False)
     class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('parent.id'), nullable=True)  # Add foreign key to Parent
     email = db.Column(db.String(100), unique=True, nullable=False)
     _password_hash = db.Column(db.String(128), nullable=False)
-    
+
+    # Relationship to Parent
+    parent = db.relationship('Parent', back_populates='children')  # Link to Parent
+
     subjects = db.relationship('Subject', secondary=student_subject, backref='students')
+
 
     @hybrid_property
     def password(self):
@@ -96,9 +101,11 @@ class Parent(db.Model, SerializerMixin):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     _password_hash = db.Column(db.String(128), nullable=False)
-    
+
+    # Relationship to children (Students)
+    children = db.relationship('Student', back_populates='parent')  # Link to Student
+
     notifications = db.relationship('Notification', secondary=parent_notification, backref='parents')
-    children = db.relationship('Student', backref='parent')
 
     @hybrid_property
     def password(self):
