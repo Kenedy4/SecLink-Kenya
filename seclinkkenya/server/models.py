@@ -16,9 +16,21 @@ student_subject = db.Table('student_subject',
 )
 
 # Models
+class User(db.Model, SerializerMixin):
+    __tablename__ = 'users'
+    
+    serialize_only = ('id', 'username', 'email')
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class Student(db.Model, SerializerMixin):
-    __tablename__ = 'student'
+
+
+class Student(db.model, SerializerMixin):
+    __tablename__ = 'students'
     
     serialize_only = ('id', 'name', 'dob', 'class_id', 'teacher_id', 'parent_id', 'overall_grade')
     
@@ -29,7 +41,7 @@ class Student(db.Model, SerializerMixin):
     teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('parent.id'), nullable=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
-    _password_hash = db.Column(db.String(128), nullable=False)
+    # _password_hash = db.Column(db.String(128), nullable=False)
     
     overall_grade = db.Column(db.String(2), nullable=True)  # Store overall grade (A, B, C, D, or E)
 
@@ -41,21 +53,6 @@ class Student(db.Model, SerializerMixin):
 
     subjects = db.relationship('Subject', secondary=student_subject, backref='students')
 
-    @hybrid_property
-    def password(self):
-        return self._password_hash
-
-    @password.setter
-    def password(self, plaintext_password):
-        self._password_hash = generate_password_hash(plaintext_password)
-    
-    def check_password(self, password):
-        return check_password_hash(self._password_hash, password)
-
-    @validates('email')
-    def validate_email(self, key, address):
-        assert '@' in address, "Invalid email format"
-        return address
  # Method to calculate the overall grade based on subject grades
     def calculate_overall_grade(self):
         if not self.grades:
@@ -99,7 +96,7 @@ class Student(db.Model, SerializerMixin):
             return 'E'
 
 class Grade(db.Model, SerializerMixin):
-    __tablename__ = 'grade'
+    __tablename__ = 'grades'
     
     id = db.Column(db.Integer, primary_key=True)
     grade = db.Column(db.String(2), nullable=False)  # Store grade like A, B, C, D, E
@@ -109,15 +106,12 @@ class Grade(db.Model, SerializerMixin):
     subject = db.relationship('Subject', backref='grades')
 
 
-class Teacher(db.Model, SerializerMixin):
-    __tablename__ = 'teacher'
+class Teacher(User):
+    __tablename__ = 'teachers'
     
-    serialize_only = ('id', 'name', 'email')
-    
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    _password_hash = db.Column(db.String(128), nullable=False)
+    user = db.relationship('User', backref='teacher', uselist=False)
+    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    subject = db.Column(db.String(50))
     
     classes = db.relationship('Class', backref='teacher')
     learning_materials = db.relationship('LearningMaterial', backref='uploader')
@@ -139,15 +133,11 @@ class Teacher(db.Model, SerializerMixin):
         return address
 
 
-class Parent(db.Model, SerializerMixin):
-    __tablename__ = 'parent'
+class Parent(User):
+    __tablename__ = 'parents'
     
-    serialize_only = ('id', 'name', 'email')
-    
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    _password_hash = db.Column(db.String(128), nullable=False)
+    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    user = db.relationship('User', backref='parent', uselist=False)
 
     # Relationship to children (Students)
     children = db.relationship('Student', back_populates='parent')
@@ -174,7 +164,7 @@ class Parent(db.Model, SerializerMixin):
 
 
 class Class(db.Model, SerializerMixin):
-    __tablename__ = 'class'
+    __tablename__ = 'classes'
     
     serialize_only = ('id', 'class_name', 'teacher_id')
     
@@ -186,7 +176,7 @@ class Class(db.Model, SerializerMixin):
 
 
 class Subject(db.Model, SerializerMixin):
-    __tablename__ = 'subject'
+    __tablename__ = 'subjects'
     
     serialize_only = ('id', 'subject_name', 'subject_code', 'class_id', 'teacher_id')
     
@@ -198,14 +188,15 @@ class Subject(db.Model, SerializerMixin):
 
 
 class Notification(db.Model, SerializerMixin):
-    __tablename__ = 'notification'
+    __tablename__ = 'notifications'
     
-    serialize_only = ('id', 'message', 'timestamp')
+    serialize_only = ('id', 'message', 'created_at', 'updated_at')
     
     id = db.Column(db.Integer, primary_key=True)
     message = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     # students = db.relationship('Student', secondary=student_notification, backref='notifications')
         # Foreign key to Parent
     parent_id = db.Column(db.Integer, db.ForeignKey('parent.id'), nullable=False)
