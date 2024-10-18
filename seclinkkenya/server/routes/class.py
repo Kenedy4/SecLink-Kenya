@@ -1,11 +1,11 @@
-from flask import request, jsonify
+from flask import jsonify
 from flask_restful import Resource
 from models import Class,  db
-# from seclinkkenya.server.routes.auth import token_required   # type: ignore
+from auth import token_required   # type: ignore
 from seclinkkenya.server.app import login_required
 
 class Class(Resource):
-    # @token_required 
+    @token_required 
     @login_required
     def get(self, class_id=None):
         if class_id:
