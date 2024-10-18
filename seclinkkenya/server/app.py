@@ -103,6 +103,13 @@ class CheckSession(Resource):
         if user:
             return {'id': user.id,  'email': user.email}, 200 #'username': user.name,
         return jsonify({'error': 'User not found'}), 404
+    
+class Logout(Resource):
+    def delete(self):
+        if session.get('user_id') is None:
+            return {'error': 'Unauthorized'}, 401  # Return 401 when no active session
+        session.pop('user_id', None)
+        return {}, 204
 
 # ======================== STUDENT ROUTES =========================
 
@@ -381,6 +388,7 @@ api.add_resource(Welcome, '/', '/welcome')
 api.add_resource(Signup, '/signup')
 api.add_resource(Login, '/login')
 api.add_resource(CheckSession, '/check-session')
+api.add_resource(Logout, '/logout')
 
 api.add_resource(Student, '/students', '/students/<int:student_id>')
 api.add_resource(Teacher, '/teachers', '/teachers/<int:teacher_id>')
