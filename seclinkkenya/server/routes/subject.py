@@ -1,11 +1,19 @@
+
+from flask import request, jsonify
+from flask_restful import Resource
+from models import Subject, db
+from seclinkkenya.server.routes.auth import token_required   # type: ignore
+from seclinkkenya.server.app import login_required
+
 class Subject(Resource):
     @login_required
+    @token_required
     def get(self, subject_id=None):
         if subject_id:
             subject = Subject.query.get_or_404(subject_id)
             return subject.to_dict(), 200
         subjects = Subject.query.all()
-        return [subject.to_dict() for subject in subjects], 200
+        return jsonify([subject.to_dict() for subject in subjects]), 200
 
     @login_required
     def post(self):

@@ -1,6 +1,7 @@
 from flask import request, session, jsonify
 from flask_restful import Resource
 from models import Parent, Notification, Student
+from seclinkkenya.server.routes.auth import token_required   # type: ignore
 from functools import wraps
 
 # Helper function to check if a parent is logged in
@@ -13,7 +14,7 @@ def parent_login_required(f):
     return decorated_function
 
 class Notifications(Resource):
-    @parent_login_required
+    @token_required
     def get(self):
         parent_id = session.get('parent_id')
         parent = Parent.query.get_or_404(parent_id)
