@@ -1,12 +1,22 @@
+import os
+from flask import app, request, jsonify, session
+from flask_restful import Resource
+from werkzeug.utils import secure_filename # type: ignore
+from models import LearningMaterial, LearningMaterialUpload, Teacher, db
+from seclinkkenya.server.routes.auth import token_required   # type: ignore
+from seclinkkenya.server.app import allowed_file, login_required
+
+
 class LearningMaterialUpload(Resource):
     @login_required
+    @token_required
     def post(self):
         # Ensure the user is a teacher
         user_id = session.get('user_id')
         teacher = Teacher.query.get(user_id)
 
         if 'file' not in request.files:
-            return {"error": "No file part"}, 400
+            return jsonify({"error": "No file part"}), 400
 
         file = request.files['file']
 

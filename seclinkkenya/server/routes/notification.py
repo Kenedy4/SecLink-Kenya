@@ -1,3 +1,4 @@
+
 class Notification(Resource):
     @login_required
     def get(self, notification_id=None):
