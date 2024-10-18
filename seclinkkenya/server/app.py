@@ -1,22 +1,32 @@
 import os
-from flask import Flask, request, session, jsonify, send_from_directory # type: ignore
+from flask import Flask, session, jsonify # type: ignore
 # from flask_sqlalchemy import SQLAlchemy # type: ignore
 from flask_restful import Api, Resource # type: ignore
+from seclinkkenya.server.routes.home import Welcome
+from seclinkkenya.server.routes.parent import Parent
+from seclinkkenya.server.routes.teacher import Teacher
+from seclinkkenya.server.routes.class1 import Class
+from seclinkkenya.server.routes.subject import Subject
+from seclinkkenya.server.routes.notification import Notification
+from seclinkkenya.server.routes.learningmaterial import LearningMaterial
+from seclinkkenya.server.routes.learningmaterialupload import LearningMaterialUpload
+from seclinkkenya.server.routes.learningmaterialdownload import LearningMaterialDownload
+from seclinkkenya.server.routes.auth import CheckSession, Login, Logout, Signup
+from seclinkkenya.server.routes.PasswordResetRequest import PasswordResetRequest, PasswordResetConfirm
 from models import db, Student, Teacher, Class, Subject, Notification, LearningMaterial
 from config import Config
-from werkzeug.utils import secure_filename # type: ignore
+# from werkzeug.utils import secure_filename # type: ignore
 from functools import wraps
 from flask_migrate import Migrate #type: ignore
+from seclinkkenya.server.routes.auth import CheckSession, Login, Logout, Signup
 from sqlalchemy.exc import IntegrityError # type: ignore
 from flask_bcrypt import Bcrypt # type: ignore
 from flask_jwt import Jwt # type: ignore
-from datetime import datetime
+# from datetime import datetime
 from flask_cors import CORS
 
 app = Flask(__name__)
 app.config.from_object(Config)
-# Initialize SQLAlchemy
-
 
 migrate = Migrate(app, db)
 bcrypt = Bcrypt(app)
@@ -58,8 +68,10 @@ api.add_resource(Signup, '/signup')
 api.add_resource(Login, '/login')
 api.add_resource(CheckSession, '/check-session')
 api.add_resource(Logout, '/logout')
+api.add_resource(PasswordResetRequest, '/password-reset-request')
+api.add_resource(PasswordResetConfirm, '/password-reset-confirm')
 
-api.add_resource(Student, '/students', '/students/<int:student_id>')
+api.add_resource(Parent, '/parents', '/parents/<int:parent_id>')
 api.add_resource(Teacher, '/teachers', '/teachers/<int:teacher_id>')
 api.add_resource(Class, '/classes', '/classes/<int:class_id>')
 api.add_resource(Subject, '/subjects', '/subjects/<int:subject_id>')

@@ -27,14 +27,69 @@ class User(db.Model, SerializerMixin):
     password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Teacher(User):
+    __tablename__ = 'teachers'
+    
+    user = db.relationship('User', backref='teacher', uselist=False)
+    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    subject = db.Column(db.String(50))
+    
+    classes = db.relationship('Class', backref='teacher')
+    learning_materials = db.relationship('LearningMaterial', backref='uploader')
+
+    @hybrid_property
+    def password(self):
+        return self._password_hash
+
+    @password.setter
+    def password(self, plaintext_password):
+        self._password_hash = generate_password_hash(plaintext_password)
+
+    def check_password(self, password):
+        return check_password_hash(self._password_hash, password)
+
+    @validates('email')
+    def validate_email(self, key, address):
+        assert '@' in address, "Invalid email format"
+        return address
 
 
-class Student(db.model, SerializerMixin):
+class Parent(User):
+    __tablename__ = 'parents'
+    
+    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    user = db.relationship('User', backref='parent', uselist=False)
+
+    # Relationship to children (Students)
+    children = db.relationship('Student', back_populates='parent')
+    
+    # Relationship to Notifications
+    notifications = db.relationship('Notification', back_populates='parent', cascade="all, delete-orphan")
+
+
+    @hybrid_property
+    def password(self):
+        return self._password_hash
+
+    @password.setter
+    def password(self, plaintext_password):
+        self._password_hash = generate_password_hash(plaintext_password)
+
+    def check_password(self, password):
+        return check_password_hash(self._password_hash, password)
+
+    @validates('email')
+    def validate_email(self, key, address):
+        assert '@' in address, "Invalid email format"
+        return address
+
+
+class Student(User, SerializerMixin):
     __tablename__ = 'students'
     
     serialize_only = ('id', 'name', 'dob', 'class_id', 'teacher_id', 'parent_id', 'overall_grade')
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     dob = db.Column(db.Date, nullable=False)
     class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
@@ -106,63 +161,6 @@ class Grade(db.Model, SerializerMixin):
     subject = db.relationship('Subject', backref='grades')
 
 
-class Teacher(User):
-    __tablename__ = 'teachers'
-    
-    user = db.relationship('User', backref='teacher', uselist=False)
-    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    subject = db.Column(db.String(50))
-    
-    classes = db.relationship('Class', backref='teacher')
-    learning_materials = db.relationship('LearningMaterial', backref='uploader')
-
-    @hybrid_property
-    def password(self):
-        return self._password_hash
-
-    @password.setter
-    def password(self, plaintext_password):
-        self._password_hash = generate_password_hash(plaintext_password)
-
-    def check_password(self, password):
-        return check_password_hash(self._password_hash, password)
-
-    @validates('email')
-    def validate_email(self, key, address):
-        assert '@' in address, "Invalid email format"
-        return address
-
-
-class Parent(User):
-    __tablename__ = 'parents'
-    
-    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    user = db.relationship('User', backref='parent', uselist=False)
-
-    # Relationship to children (Students)
-    children = db.relationship('Student', back_populates='parent')
-    
-    # Relationship to Notifications
-    notifications = db.relationship('Notification', back_populates='parent', cascade="all, delete-orphan")
-
-
-    @hybrid_property
-    def password(self):
-        return self._password_hash
-
-    @password.setter
-    def password(self, plaintext_password):
-        self._password_hash = generate_password_hash(plaintext_password)
-
-    def check_password(self, password):
-        return check_password_hash(self._password_hash, password)
-
-    @validates('email')
-    def validate_email(self, key, address):
-        assert '@' in address, "Invalid email format"
-        return address
-
-
 class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
     
@@ -219,11 +217,14 @@ class LearningMaterial(db.Model, SerializerMixin):
 
 
 class PasswordResetToken(db.Model, SerializerMixin):
-    __tablename__ = 'password_reset_token'
+    __tablename__ = 'password_reset_tokens'  # Renamed for consistency
     
     serialize_only = ('id', 'user_id', 'token', 'expiry_date')
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False)
-    token = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(100), nullable=False, unique=True)
     expiry_date = db.Column(db.DateTime, nullable=False)
+    
+    # Relationship to User (optional)
+    user = db.relationship('User', backref='password_reset_tokens')

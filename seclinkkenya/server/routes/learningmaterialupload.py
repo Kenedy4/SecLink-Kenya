@@ -2,7 +2,7 @@ import os
 from flask import app, request, jsonify, session
 from flask_restful import Resource
 from werkzeug.utils import secure_filename # type: ignore
-from models import LearningMaterial, LearningMaterialUpload, Teacher, db
+from models import LearningMaterial, Teacher, db
 from seclinkkenya.server.routes.auth import token_required   # type: ignore
 from seclinkkenya.server.app import allowed_file, login_required
 
