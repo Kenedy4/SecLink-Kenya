@@ -5,6 +5,8 @@ from models import User
 from config import Config
 from flask import current_app as app
 
+from seclinkkenya.server.app import ALLOWED_EXTENSIONS
+
 # Helper function to check if a user is logged in
 def login_required(f):
     @wraps(f)

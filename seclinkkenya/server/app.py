@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flask_restful import Api
-from models import db, Student, Teacher, Parent, Class, Subject, Notifications, LearningMaterial
+from models import db, User, Student, Teacher, Parent, Class, Subject, Notifications, LearningMaterial
 from config import Config
 from flask_mail import Mail
 # from functools import wraps
@@ -61,7 +61,7 @@ api.add_resource(PasswordResetConfirm, '/password-reset-confirm')
 
 # Other resources
 api.add_resource(Parent, '/parents', '/parents/<int:parent_id>')
-api.add_resource(Student, '/students/<int:student_id>/learning-materials')
+api.add_resource(Student, '/students', '/students/<int:student_id>')
 api.add_resource(Teacher, '/teachers', '/teachers/<int:teacher_id>')
 api.add_resource(Class, '/classes', '/classes/<int:class_id>')
 api.add_resource(Subject, '/subjects', '/subjects/<int:subject_id>')

@@ -1,6 +1,6 @@
 from flask import jsonify
 from flask_restful import Resource
-from models import LearningMaterial, db
+from models import LearningMaterial,Student, db
 from routes.utils import token_required, login_required  # type: ignore
 
 

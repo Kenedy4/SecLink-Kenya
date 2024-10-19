@@ -9,7 +9,6 @@ from sqlalchemy.orm import validates # type: ignore
 db = SQLAlchemy()
 
 # Association tables
-# Association tables
 student_subject = db.Table('student_subject',
     db.Column('student_id', db.Integer, db.ForeignKey('students.id')),
     db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id'))
@@ -19,23 +18,36 @@ student_subject = db.Table('student_subject',
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
     
-    serialize_only = ('id', 'username', 'email')
-    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'created_at': self.created_at.isoformat()  
+        }
+
 class Teacher(User):
     __tablename__ = 'teachers'
     
-    user = db.relationship('User', backref='teacher', uselist=False)
     id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     subject = db.Column(db.String(50))
     
     classes = db.relationship('Class', backref='teacher')
     learning_materials = db.relationship('LearningMaterial', backref='uploader')
+
+    def to_dict(self):
+        return {
+            **super().to_dict(),  # Include parent class data (from User)
+            'subject': self.subject,
+            'classes': [c.to_dict() for c in self.classes],  # Serialize related objects
+            'learning_materials': [lm.to_dict() for lm in self.learning_materials]
+        }
 
     @hybrid_property
     def password(self):
@@ -58,12 +70,16 @@ class Parent(User):
     __tablename__ = 'parents'
     
     id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    user = db.relationship('User', backref='parent_profile', uselist=False)
-
-    # Relationship to children (Students)
+    
     children = db.relationship('Student', back_populates='parent', foreign_keys='Student.parent_id')
-            # Relationship to notification 
     notifications = db.relationship('Notifications', back_populates='parent', cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            **super().to_dict(),  # Include parent class data (from User)
+            'children': [child.to_dict() for child in self.children],
+            'notifications': [notification.to_dict() for notification in self.notifications]
+        }
 
 
     @hybrid_property
@@ -86,96 +102,72 @@ class Parent(User):
 class Student(User, SerializerMixin):
     __tablename__ = 'students'
     
-    serialize_only = ('id', 'name', 'dob', 'class_id', 'teacher_id', 'parent_id', 'overall_grade')
-    
     id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     dob = db.Column(db.Date, nullable=False)
     class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('parents.id'), nullable=True)
-    # email = db.Column(db.String(100), unique=True, nullable=False)
-    # _password_hash = db.Column(db.String(128), nullable=False)
-    
-    overall_grade = db.Column(db.String(2), nullable=True)  # Store overall grade (A, B, C, D, or E)
+    overall_grade = db.Column(db.String(2), nullable=True)
 
-    # Relationship to Parent
     parent = db.relationship('Parent', back_populates='children', foreign_keys=[parent_id])
-
-    # Grades relationship
-    grades = db.relationship('Grade', backref='student', lazy=True)  # Link to Grade
-
+    grades = db.relationship('Grade', backref='student', lazy=True)
     subjects = db.relationship('Subject', secondary=student_subject, backref='students')
 
- # Method to calculate the overall grade based on subject grades
-    def calculate_overall_grade(self):
-        if not self.grades:
-            return None  # No grades available
+    def to_dict(self):
+        return {
+            **super().to_dict(),  # Include parent class data (from User)
+            'name': self.name,
+            'dob': self.dob.isoformat(),  # Serialize date
+            'class_id': self.class_id,
+            'teacher_id': self.teacher_id,
+            'parent_id': self.parent_id,
+            'overall_grade': self.overall_grade,
+            'grades': [grade.to_dict() for grade in self.grades],  # Serialize relationships
+            'subjects': [subject.to_dict() for subject in self.subjects]
+        }
 
-        total_score = 0
-        for grade in self.grades:
-            total_score += self._convert_letter_to_points(grade.grade)
-
-        # Calculate the average score
-        average_score = total_score / len(self.grades)
-
-        # Convert the average score back to a letter grade
-        self.overall_grade = self._convert_points_to_letter(average_score)
-        db.session.commit()
-
-    # Helper method to convert letter grades to points (A = 4, B = 3, etc.)
-    def _convert_letter_to_points(self, letter):
-        if letter == 'A':
-            return 4
-        elif letter == 'B':
-            return 3
-        elif letter == 'C':
-            return 2
-        elif letter == 'D':
-            return 1
-        else:
-            return 0  # For 'E'
-
-    # Helper method to convert points to a letter grade
-    def _convert_points_to_letter(self, points):
-        if points >= 85:
-            return 'A'
-        elif points >= 75:
-            return 'B'
-        elif points >= 65:
-            return 'C'
-        elif points >= 55:
-            return 'D'
-        else:
-            return 'E'
 
 class Grade(db.Model, SerializerMixin):
     __tablename__ = 'grades'
     
     id = db.Column(db.Integer, primary_key=True)
-    grade = db.Column(db.String(2), nullable=False)  # Store grade like A, B, C, D, E
+    grade = db.Column(db.String(2), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=False)
 
     subject = db.relationship('Subject', backref='grades')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'grade': self.grade,
+            'student_id': self.student_id,
+            'subject_id': self.subject_id,
+            'subject': self.subject.subject_name
+        }
+
 
 class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
     
-    serialize_only = ('id', 'class_name', 'teacher_id')
-    
     id = db.Column(db.Integer, primary_key=True)
     class_name = db.Column(db.String(50), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
-    
+
     subjects = db.relationship('Subject', backref='class')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'class_name': self.class_name,
+            'teacher_id': self.teacher_id,
+            'subjects': [subject.to_dict() for subject in self.subjects]  # Serialize related subjects
+        }
 
 
 class Subject(db.Model, SerializerMixin):
     __tablename__ = 'subjects'
-    
-    serialize_only = ('id', 'subject_name', 'subject_code', 'class_id', 'teacher_id')
     
     id = db.Column(db.Integer, primary_key=True)
     subject_name = db.Column(db.String(100), nullable=False)
@@ -183,29 +175,39 @@ class Subject(db.Model, SerializerMixin):
     class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'subject_name': self.subject_name,
+            'subject_code': self.subject_code,
+            'class_id': self.class_id,
+            'teacher_id': self.teacher_id
+        }
+
+
 
 class Notifications(db.Model, SerializerMixin):
     __tablename__ = 'notifications'
     
-    serialize_only = ('id', 'message', 'created_at', 'updated_at')
-    
     id = db.Column(db.Integer, primary_key=True)
     message = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-    # students = db.relationship('Student', secondary=student_notification, backref='notifications')
-        # Foreign key to Parent
     parent_id = db.Column(db.Integer, db.ForeignKey('parents.id'), nullable=False)
 
-    # Relationship to Parent
     parent = db.relationship('Parent', back_populates='notifications')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'message': self.message,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'parent_id': self.parent_id
+        }
 
 class LearningMaterial(db.Model, SerializerMixin):
     __tablename__ = 'learning_material'
-    
-    serialize_only = ('id', 'title', 'file_path', 'upload_date', 'teacher_id', 'subject_id')
     
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -214,17 +216,31 @@ class LearningMaterial(db.Model, SerializerMixin):
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'file_path': self.file_path,
+            'upload_date': self.upload_date.isoformat(),
+            'teacher_id': self.teacher_id,
+            'student_id': self.student_id
+        }
 
 
 class PasswordResetToken(db.Model, SerializerMixin):
-    __tablename__ = 'password_reset_tokens'  # Renamed for consistency
-    
-    serialize_only = ('id', 'user_id', 'token', 'expiry_date')
+    __tablename__ = 'password_reset_tokens'
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     token = db.Column(db.String(100), nullable=False, unique=True)
     expiry_date = db.Column(db.DateTime, nullable=False)
-    
-    # Relationship to User (optional)
+
     user = db.relationship('User', backref='password_reset_tokens')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'token': self.token,
+            'expiry_date': self.expiry_date.isoformat()
+        }
