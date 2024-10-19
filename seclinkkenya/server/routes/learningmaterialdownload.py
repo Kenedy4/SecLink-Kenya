@@ -2,8 +2,8 @@ import os
 from flask import jsonify, send_from_directory, current_app as app
 from flask_restful import Resource
 from models import LearningMaterial,  db
-from auth import token_required   # type: ignore
-from seclinkkenya.server.app import login_required
+from routes.utils import token_required, login_required  # type: ignore
+
 
 
 class LearningMaterialDownload(Resource):

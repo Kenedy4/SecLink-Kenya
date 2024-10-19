@@ -1,9 +1,9 @@
 
 from flask import jsonify, request
 from flask_restful import Resource
-from seclinkkenya.server.app import login_required
 from models import Teacher, db
-from seclinkkenya.server.routes.auth import token_required   # type: ignore
+from routes.utils import token_required, login_required  # type: ignore
+
 
 class Teacher(Resource):
     @login_required

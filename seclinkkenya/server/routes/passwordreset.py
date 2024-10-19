@@ -1,15 +1,11 @@
-from flask import request, jsonify
+from flask import request, jsonify, current_app as app
 from flask_restful import Resource
 from models import User, PasswordResetToken, db
 from werkzeug.security import generate_password_hash
 import datetime
-import jwt
 import secrets
 from flask_mail import Message
-from flask import current_app as app
-from flask_mail import Mail
 
-mail = Mail(app)  # Assuming Flask-Mail is initialized
 
 class RequestPasswordReset(Resource):
     def post(self):
@@ -39,7 +35,7 @@ class RequestPasswordReset(Resource):
         return jsonify({'message': 'Password reset link sent to your email.'}), 200
 
 
-class ResetPassword(Resource):
+class PasswordResetConfirm(Resource):
     def post(self):
         data = request.get_json()
         token = data.get('token')

@@ -1,9 +1,9 @@
 from functools import wraps
-from flask import Flask, request, session, jsonify, current_app as app
+from flask import request, session, jsonify, current_app as app
 from flask_restful import Resource
 import jwt
 from models import Teacher, Parent, User, db
-from seclinkkenya.server.app import login_required
+from routes.utils import login_required 
 from flask_bcrypt import Bcrypt # type: ignore
 import datetime
 
@@ -79,24 +79,24 @@ class Logout(Resource):
         return {}, 204
 
 # Token Required Decorator to be used across all classes that need to be authorized
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
+# def token_required(f):
+#     @wraps(f)
+#     def decorated(*args, **kwargs):
+#         token = request.headers.get('Authorization')
         
-        if not token:
-            return jsonify({'message': 'Token is missing!'}), 403
+#         if not token:
+#             return jsonify({'message': 'Token is missing!'}), 403
         
-        try:
-            # Assuming 'Bearer <token>' format
-            token = token.split()[1]
-            decoded_token = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user = User.query.get(decoded_token['user_id'])
-        except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired!'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'message': 'Invalid token!'}), 401
+#         try:
+#             # Assuming 'Bearer <token>' format
+#             token = token.split()[1]
+#             decoded_token = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+#             current_user = User.query.get(decoded_token['user_id'])
+#         except jwt.ExpiredSignatureError:
+#             return jsonify({'message': 'Token has expired!'}), 401
+#         except jwt.InvalidTokenError:
+#             return jsonify({'message': 'Invalid token!'}), 401
         
-        return f(current_user, *args, **kwargs)
+#         return f(current_user, *args, **kwargs)
     
-    return decorated
+#     return decorated

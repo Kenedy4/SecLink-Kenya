@@ -3,8 +3,8 @@ from flask import app, request, jsonify, session
 from flask_restful import Resource
 from werkzeug.utils import secure_filename # type: ignore
 from models import LearningMaterial, Teacher, db
-from seclinkkenya.server.routes.auth import token_required   # type: ignore
-from seclinkkenya.server.app import allowed_file, login_required
+from routes.utils import token_required, login_required  # type: ignore
+from routes.utils import allowed_file
 
 
 class LearningMaterialUpload(Resource):

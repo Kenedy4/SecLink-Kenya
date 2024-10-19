@@ -11,8 +11,8 @@ db = SQLAlchemy()
 # Association tables
 # Association tables
 student_subject = db.Table('student_subject',
-    db.Column('student_id', db.Integer, db.ForeignKey('student.id')),
-    db.Column('subject_id', db.Integer, db.ForeignKey('subject.id'))
+    db.Column('student_id', db.Integer, db.ForeignKey('students.id')),
+    db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id'))
 )
 
 # Models
@@ -58,13 +58,12 @@ class Parent(User):
     __tablename__ = 'parents'
     
     id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    user = db.relationship('User', backref='parent', uselist=False)
+    user = db.relationship('User', backref='parent_profile', uselist=False)
 
     # Relationship to children (Students)
-    children = db.relationship('Student', back_populates='parent')
-    
-    # Relationship to Notifications
-    notifications = db.relationship('Notification', back_populates='parent', cascade="all, delete-orphan")
+    children = db.relationship('Student', back_populates='parent', foreign_keys='Student.parent_id')
+            # Relationship to notification 
+    notifications = db.relationship('Notifications', back_populates='parent', cascade="all, delete-orphan")
 
 
     @hybrid_property
@@ -92,16 +91,16 @@ class Student(User, SerializerMixin):
     id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     dob = db.Column(db.Date, nullable=False)
-    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey('parent.id'), nullable=True)
-    email = db.Column(db.String(100), unique=True, nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('parents.id'), nullable=True)
+    # email = db.Column(db.String(100), unique=True, nullable=False)
     # _password_hash = db.Column(db.String(128), nullable=False)
     
     overall_grade = db.Column(db.String(2), nullable=True)  # Store overall grade (A, B, C, D, or E)
 
     # Relationship to Parent
-    parent = db.relationship('Parent', back_populates='children')
+    parent = db.relationship('Parent', back_populates='children', foreign_keys=[parent_id])
 
     # Grades relationship
     grades = db.relationship('Grade', backref='student', lazy=True)  # Link to Grade
@@ -155,8 +154,8 @@ class Grade(db.Model, SerializerMixin):
     
     id = db.Column(db.Integer, primary_key=True)
     grade = db.Column(db.String(2), nullable=False)  # Store grade like A, B, C, D, E
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=False)
 
     subject = db.relationship('Subject', backref='grades')
 
@@ -168,7 +167,7 @@ class Class(db.Model, SerializerMixin):
     
     id = db.Column(db.Integer, primary_key=True)
     class_name = db.Column(db.String(50), nullable=False)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
     
     subjects = db.relationship('Subject', backref='class')
 
@@ -181,11 +180,11 @@ class Subject(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     subject_name = db.Column(db.String(100), nullable=False)
     subject_code = db.Column(db.String(10), nullable=False)
-    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
 
 
-class Notification(db.Model, SerializerMixin):
+class Notifications(db.Model, SerializerMixin):
     __tablename__ = 'notifications'
     
     serialize_only = ('id', 'message', 'created_at', 'updated_at')
@@ -197,7 +196,7 @@ class Notification(db.Model, SerializerMixin):
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     # students = db.relationship('Student', secondary=student_notification, backref='notifications')
         # Foreign key to Parent
-    parent_id = db.Column(db.Integer, db.ForeignKey('parent.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('parents.id'), nullable=False)
 
     # Relationship to Parent
     parent = db.relationship('Parent', back_populates='notifications')
@@ -212,8 +211,9 @@ class LearningMaterial(db.Model, SerializerMixin):
     title = db.Column(db.String(200), nullable=False)
     file_path = db.Column(db.String(200), nullable=False)
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+
 
 
 class PasswordResetToken(db.Model, SerializerMixin):

@@ -1,28 +1,36 @@
 from flask import request, session, jsonify
+from models import Notifications, Parent, Student
 from flask_restful import Resource
-from models import Parent, Notification, Student
-from seclinkkenya.server.routes.auth import token_required   # type: ignore
-from functools import wraps
+from routes.utils import token_required
 
-# Helper function to check if a parent is logged in
-def parent_login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'parent_id' not in session:
-            return jsonify({"error": "Unauthorized access, please log in as a parent"}), 401
-        return f(*args, **kwargs)
-    return decorated_function
+
+from flask import request, jsonify, session
+from flask_restful import Resource
+from models import Parent, db
+from routes.utils import token_required
+
+class Parent(Resource):
+    @token_required
+    def get(self, parent_id=None):
+        if parent_id:
+            # Fetch a specific parent
+            parent = Parent.query.get_or_404(parent_id)
+            return jsonify(parent.to_dict())
+        else:
+            # Fetch all parents (optional)
+            parents = Parent.query.all()
+            return jsonify([parent.to_dict() for parent in parents])
 
 class Notifications(Resource):
     @token_required
     def get(self):
         parent_id = session.get('parent_id')
         parent = Parent.query.get_or_404(parent_id)
-        notifications = Notification.query.filter_by(parent_id=parent.id).all()
+        notifications = Notifications.query.filter_by(parent_id=parent.id).all()
         return jsonify([notification.to_dict() for notification in notifications]), 200
 
 class Student(Resource):
-    @parent_login_required
+    @token_required
     def get(self):
         parent_id = session.get('parent_id')
         parent = Parent.query.get_or_404(parent_id)
