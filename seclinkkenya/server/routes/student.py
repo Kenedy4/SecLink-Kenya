@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from models import Student, LearningMaterial
+from models import Student
 from flask import request, jsonify
 
 class Student (Resource):

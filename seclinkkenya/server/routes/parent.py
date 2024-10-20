@@ -1,12 +1,11 @@
 from flask import request, session, jsonify
-from models import Notifications, Parent, Student
+from seclinkkenya.server.models import Notifications, Parent, Student, db
 from flask_restful import Resource
-from routes.utils import token_required
+from seclinkkenya.server.routes.utils import token_required
 
 
 from flask import request, jsonify, session
 from flask_restful import Resource
-from models import Parent, db
 from routes.utils import token_required
 
 class Parent(Resource):

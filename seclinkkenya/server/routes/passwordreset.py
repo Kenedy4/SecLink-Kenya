@@ -30,7 +30,7 @@ class RequestPasswordReset(Resource):
         reset_link = f"{app.config['FRONTEND_URL']}/reset-password?token={token}"
         msg = Message('Password Reset Request', recipients=[email])
         msg.body = f"Use the following link to reset your password: {reset_link}"
-        mail.send(msg)
+        email.send(msg)
 
         return jsonify({'message': 'Password reset link sent to your email.'}), 200
 

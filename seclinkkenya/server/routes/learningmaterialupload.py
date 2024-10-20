@@ -26,6 +26,7 @@ class LearningMaterialUpload(Resource):
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
 
             # Save the file path and related information in the database
             data = request.form  # Get additional form data
