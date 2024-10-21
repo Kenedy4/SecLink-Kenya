@@ -1,8 +1,9 @@
 import os
 from functools import wraps
-from flask import Flask, jsonify, request, session, send_from_directory, redirect, url_for
+from flask import Flask, jsonify, request, send_from_directory, session
 from models import Grade, db, Student, Teacher, Parent, Class, Subject, Notifications, LearningMaterial, PasswordResetToken
 from werkzeug.utils import secure_filename
+from sqlalchemy import or_
 from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -32,7 +33,7 @@ migrate = Migrate(app, db)
 bcrypt = Bcrypt(app)  # Using bcrypt for hashing
 jwt = JWTManager(app)
 mail = Mail(app)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app)
 
 # Initializing the database
 db.init_app(app)
@@ -44,15 +45,6 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 # Helper function to check allowed file extensions
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
-# Helper function to check if a user is logged in
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({"error": "Unauthorized access, please log in"}), 401
-        return f(*args, **kwargs)
-    return decorated_function
 
 # Token required decorator
 def token_required(f):
@@ -95,6 +87,7 @@ def welcome():
 # Auth Routes
 
 @app.route('/signup', methods=['POST'])
+@app.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     name = data.get('name')
@@ -104,6 +97,13 @@ def signup():
     subject = data.get('subject')
     role = data.get('role')
 
+    # Check if the username already exists in Teacher or Parent tables
+    existing_user = Teacher.query.filter_by(username=username).first() or Parent.query.filter_by(username=username).first()
+
+    if existing_user:
+        return {"message": "Username already exists"}, 400  # Return message if username exists
+
+    # Proceed with user creation based on role
     if role == 'teacher':
         new_user = Teacher(name=name, username=username, subject=subject, email=email)
     elif role == 'parent':
@@ -121,43 +121,54 @@ def signup():
     return {"message": f'{role.capitalize()} registered successfully.'}, 201
 
 
-
-@app.route('/api/users/login', methods=['POST'])
-def user_login():
+@app.route('/login', methods=['POST'])
+def login():
+    # Parse the request data (username and password)
     data = request.get_json()
-    
-    # Validate if required fields are present
-    if not data or not all(key in data for key in ('username', 'password')):
+
+    # Ensure required fields are present
+    if not data or not all(key in data for key in ['username', 'password']):
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Query for the user by username (either Teacher or Parent)
-    user = Teacher.query.filter_by(username=data['username']).first() or Parent.query.filter_by(username=data['username']).first()
+    # Query both Teacher and Parent tables in one go using SQLAlchemy or_
+    user = Teacher.query.filter(Teacher.username == data['username']).first() or \
+           Parent.query.filter(Parent.username == data['username']).first()
 
-    # Verify the password
-    if user and bcrypt.check_password_hash(user.password, data['password']):
-        # Generate JWT token upon successful login
-        access_token = create_access_token(identity=user.id)
-        return jsonify(access_token=access_token), 200
+    if user:
+        print(f"User found: {user}")  # Debug the user found
+        print(f"Stored Hashed Password: {user.password}")  # Debug the stored password hash
+        print(f"Provided Password: {data['password']}")  # Debug the provided password
+        
+        # Verify the password using bcrypt's check_password_hash
+        if bcrypt.check_password_hash(user.password, data['password']):
+            # If password is valid, create and return JWT access token
+            access_token = create_access_token(identity=user.id)
+            return jsonify(access_token=access_token), 200
+        else:
+            # If password is incorrect
+            print("Invalid password")  # Debug password mismatch
+            return jsonify({"error": "Invalid credentials"}), 401
 
-    # Invalid credentials
-    return jsonify({"error": "Invalid credentials"}), 401
+    # If user not found
+    print("User not found")  # Debug user not found
+    return jsonify({"error": "User not found"}), 404
+
 
 @app.route('/check-session', methods=['GET'])
 @jwt_required()  
 def check_session():
     identity = get_jwt_identity()
 
-    user = Teacher.query.filter_by(username=identity['username']).first() or Parent.query.filter_by(username=identity['username']).first()
+    user = Teacher.query.filter_by(id=identity).first() or Parent.query.filter_by(id=identity).first()
 
     if not user:
-        return {"error": 'User not found'}, 404
-    role = identity['role']  
+        return jsonify({"error": 'User not found'}), 404
 
     return {
         'id': user.id,
         'username': user.username,
         'email': user.email,
-        'role': role
+        'role': 'teacher' if isinstance(user, Teacher) else 'parent'
     }, 200
 
 @app.route('/logout', methods=['DELETE'])
@@ -168,8 +179,7 @@ def logout():
 
 # Teacher Routes
 @app.route('/teachers', methods=['GET'])
-@login_required
-@token_required
+@token_required  # Only token_required is used
 def get_teacher(current_user):
     students = Student.query.filter_by(teacher_id=current_user.id).all()
     parents = Parent.query.join(Student).filter(Student.teacher_id == current_user.id).all()
@@ -181,8 +191,7 @@ def get_teacher(current_user):
 
 # Parent Routes
 @app.route('/parents', methods=['GET'])
-@login_required
-@token_required
+@token_required  # Only token_required is used
 def get_parent(current_user):
     students = Student.query.filter_by(parent_id=current_user.id).all()
     notifications = Notifications.query.filter_by(parent_id=current_user.id).all()
@@ -196,8 +205,7 @@ def get_parent(current_user):
 
 # Notifications Routes
 @app.route('/notifications', methods=['POST'])
-@login_required
-@token_required
+@token_required  # Only token_required is used
 def post_notification(current_user):
     data = request.get_json()
     notification = Notifications(
@@ -210,14 +218,12 @@ def post_notification(current_user):
 
 # Learning Material Routes
 @app.route('/learning-materials', methods=['GET'])
-@login_required
 @token_required
 def get_learning_materials(current_user):
     learning_materials = LearningMaterial.query.all()
     return jsonify([lm.to_dict() for lm in learning_materials]), 200
 
 @app.route('/upload', methods=['POST'])
-@login_required
 @token_required
 def upload_learning_material(current_user):
     if 'file' not in request.files:
@@ -248,7 +254,6 @@ def upload_learning_material(current_user):
         return {"error": "Invalid file format"}, 400
 
 @app.route('/download/<int:learning_material_id>', methods=['GET'])
-@login_required
 @token_required
 def download_learning_material(current_user, learning_material_id):
     learning_material = LearningMaterial.query.get_or_404(learning_material_id)

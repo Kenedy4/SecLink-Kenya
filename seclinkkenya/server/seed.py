@@ -1,23 +1,23 @@
-from flask_bcrypt import generate_password_hash
+from flask_bcrypt import Bcrypt, generate_password_hash
 from faker import Faker
 from models import db, Student, Teacher, Parent, Class, Subject, Notifications, Grade, LearningMaterial
 from app import app
 
 # Initialize Faker
 fake = Faker()
-
+bcrypt = Bcrypt()
 # Seed Teachers
 def seed_teachers(num=15):
     teachers = []
     for _ in range(num):
         plaintext_password = fake.password()  # Generate a plaintext password
-        hashed_password = generate_password_hash(plaintext_password).decode('utf-8')  # Hash using bcrypt
+        hashed_password = bcrypt.generate_password_hash(plaintext_password).decode('utf-8')  # Hash using bcrypt
         teacher = Teacher(
             name=fake.name(),
             username=fake.user_name(),
             email=fake.unique.email(),
             subject=fake.job(),
-            password=hashed_password  # Store the hashed password
+            password=hashed_password  # Store the bcrypt hashed password
         )
         db.session.add(teacher)  # Add each teacher to the session
         teachers.append(teacher)
@@ -35,12 +35,12 @@ def seed_parents(num=15):
     parents = []
     for _ in range(num):
         plaintext_password = fake.password()  # Generate a plaintext password
-        hashed_password = generate_password_hash(plaintext_password).decode('utf-8')  # Hash using bcrypt
+        hashed_password = bcrypt.generate_password_hash(plaintext_password).decode('utf-8')  # Hash using bcrypt
         parent = Parent(
             name=fake.name(),
             username=fake.user_name(),
             email=fake.unique.email(),
-            password=hashed_password  # Store the hashed password
+            password=hashed_password  # Store the bcrypt hashed password
         )
         db.session.add(parent)  # Add each parent to the session
         parents.append(parent)
@@ -94,7 +94,7 @@ def seed_students(classes, parents, num=10):
         class_obj = fake.random_element(classes)
         parent = fake.random_element(parents)
         plaintext_password = fake.password()  # Generate a plaintext password
-        hashed_password = generate_password_hash(plaintext_password).decode('utf-8')  # Hash using bcrypt
+        hashed_password = bcrypt.generate_password_hash(plaintext_password).decode('utf-8')  # Hash using bcrypt
         student = Student(
             name=fake.name(),
             username=fake.user_name(),
@@ -103,7 +103,7 @@ def seed_students(classes, parents, num=10):
             teacher_id=class_obj.teacher_id,
             parent_id=parent.id,
             email=fake.unique.email(),
-            password=hashed_password  # Store the hashed password
+            password=hashed_password  # Store the bcrypt hashed password
         )
         db.session.add(student)  # Add each student to the session
         students.append(student)
