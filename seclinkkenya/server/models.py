@@ -21,20 +21,20 @@ class BaseUser(db.Model, SerializerMixin):
     name = db.Column(db.String(100), nullable=False)  # Inherited by Teacher, Parent, and Student
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=True)
+    password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @hybrid_property
     def password(self):
-        return self._password_hash
+        return self.password_hash
 
     @password.setter
     def password(self, plaintext_password):
         if plaintext_password:
-            self._password_hash = generate_password_hash(plaintext_password)
+            self.password_hash = generate_password_hash(plaintext_password)
 
     def check_password(self, password):
-        return check_password_hash(self._password_hash, password)
+        return check_password_hash(self.password_hash, password)
 
     @validates('email')
     def validate_email(self, key, address):
@@ -60,6 +60,7 @@ class Teacher(BaseUser):
             'classes': [c.to_dict() for c in self.classes],
             'learning_materials': [lm.to_dict() for lm in self.learning_materials]
         }
+        
 
 class Parent(BaseUser):
     __tablename__ = 'parents'
@@ -106,32 +107,6 @@ class Student(BaseUser):
             'grades': [grade.to_dict() for grade in self.grades],
             'subjects': [subject.to_dict() for subject in self.subjects]
         }
-
-    def calculate_overall_grade(self):
-        if not self.grades:
-            return None
-
-        total_score = sum(self._convert_letter_to_points(grade.grade) for grade in self.grades)
-        average_score = total_score / len(self.grades)
-
-        self.overall_grade = self._convert_points_to_letter(average_score)
-        db.session.commit()
-
-    @staticmethod
-    def _convert_letter_to_points(letter):
-        return {'A': 4, 'B': 3, 'C': 2, 'D': 1}.get(letter, 0)
-
-    @staticmethod
-    def _convert_points_to_letter(points):
-        if points >= 85:
-            return 'A'
-        elif points >= 75:
-            return 'B'
-        elif points >= 65:
-            return 'C'
-        elif points >= 55:
-            return 'D'
-        return 'E'
 
 class Grade(db.Model, SerializerMixin):
     __tablename__ = 'grades'
@@ -244,4 +219,3 @@ class PasswordResetToken(db.Model, SerializerMixin):
             'teacher_id': self.teacher_id,
             'student_id': self.student_id
         }
-        
