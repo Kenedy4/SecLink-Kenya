@@ -1,40 +1,49 @@
 import os
-from flask import Flask, request, session, jsonify, send_from_directory # type: ignore
-# from flask_sqlalchemy import SQLAlchemy # type: ignore
-from flask_restful import Api, Resource # type: ignore
-from models import db, Student, Teacher, Class, Subject, Notification, LearningMaterial
-from config import Config
-from werkzeug.utils import secure_filename # type: ignore
 from functools import wraps
-from flask_migrate import Migrate #type: ignore
-from sqlalchemy.exc import IntegrityError # type: ignore
-from flask_bcrypt import Bcrypt # type: ignore
+from flask import Flask, jsonify, request, session, send_from_directory, redirect, url_for
+from models import Grade, db, Student, Teacher, Parent, Class, Subject, Notifications, LearningMaterial, PasswordResetToken
+from werkzeug.utils import secure_filename
+from flask_migrate import Migrate
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+import datetime
+import secrets
+from flask_mail import Mail, Message
+from flask_cors import CORS
 
+# Flask app setup
 app = Flask(__name__)
-app.config.from_object(Config)
-# Initialize SQLAlchemy
+app.config['JWT_SECRET_KEY'] = 'SECRET_KEY'  # Use a strong secret key in production
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///seclinkkenya.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'docx', 'txt'}
+app.config['PORT'] = 5555
 
+# Flask-Mail setup
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'YOUR_EMAIL_ADDRESS'
+app.config['MAIL_PASSWORD'] = 'YOUR_EMAIL_PASSWORD'
 
+# Initializing necessary extensions
 migrate = Migrate(app, db)
-bcrypt = Bcrypt(app)
-api = Api(app)
+bcrypt = Bcrypt(app)  # Using bcrypt for hashing
+jwt = JWTManager(app)
+mail = Mail(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
-# Initialize extensions
-# db = SQLAlchemy()
+# Initializing the database
 db.init_app(app)
-# Directory for saving uploaded files
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt'}
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-
-# Directory for saving uploaded files
-app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
 
 # Ensure the 'uploads' folder exists
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
+
+# Helper function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 # Helper function to check if a user is logged in
 def login_required(f):
@@ -45,351 +54,279 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Helper function to check allowed file extensions
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf', 'docx', 'txt'}
-
-# ======================== WELCOME ROUTE =========================
-
-class Welcome(Resource):
-    def get(self):
-        return jsonify({"message": "Welcome to SecLink"})
-# ======================== AUTH ROUTES =========================
-
-class Signup(Resource):
-    def post(self):
-        data = request.get_json()
-        # username = data.get('username')
-        email = data.get('email')
-        password = data.get('password')
-        
-
-        if not email or not password :
-            return jsonify({'error': 'email and password are required.'}), 422
-
-        # user = Teacher(email=email)
-        hash_password = bcrypt.generate_password_hash(password)  # Using hybrid property for password hashing
-        # user.password =  hash_password  # Using hybrid property for password hashing
-        user = User(email=email, password=hash_password)
+# Token required decorator
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token or not token.startswith("Bearer "):
+            return jsonify({'message': 'Token is missing or in incorrect format!'}), 403
 
         try:
-            db.session.add(user)
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            return {'error': 'User already exists.'}, 422
+            token = token.split()[1]  # Extract token part
+            decoded_token = jwt.decode_token(token)
+            current_user = Teacher.query.get(decoded_token['identity']) or Parent.query.get(decoded_token['identity'])
+            if not current_user:
+                return jsonify({'message': 'User not found!'}), 404
+        except Exception as e:
+            return jsonify({'message': f'Error processing token: {str(e)}'}), 400
 
-        session['user_id'] = user.id
-        return jsonify({'id': user.id, 'email': user.email}), 201 #'username': user.name,
+        # Pass current_user to the decorated function
+        return f(current_user, *args, **kwargs)
 
-class Login(Resource):
-    def post(self):
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
+    return decorated
 
-        user = User.query.filter_by(email=email).first()
-        if user and user.check_password(password):
-            session['user_id'] = user.id
-            return {'id': user.id, 'email': user.email}, 200 #'username': user.name,
+# Verify password using bcrypt
+def verify_password(user, entered_password):
+    # Verify using bcrypt
+    return bcrypt.check_password_hash(user.password, entered_password)
 
-        return jsonify({'error': 'Invalid credentials'}), 401
+# Error handler for internal server errors
+@app.errorhandler(500)
+def internal_server_error(e):
+    return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
-class CheckSession(Resource):
-    @login_required
-    def get(self):
-        user_id = session.get('user_id')
-        user = User.query.get(user_id)
-        if user:
-            return {'id': user.id,  'email': user.email}, 200 #'username': user.name,
-        return jsonify({'error': 'User not found'}), 404
+######  Routes ######
 
-# ======================== STUDENT ROUTES =========================
+@app.route('/')
+def welcome():
+    return jsonify({"message": "Welcome to SecLink Kenya"}), 200
 
-class Student(Resource):
-    # @login_required
-    def get(self, student_id=None):
-        if student_id:
-            student = Student.query.get_or_404(student_id)
-            return student.to_dict(), 200
-        students = Student.query.all()
-        return jsonify([student.to_dict() for student in students]), 200
+# Auth Routes
 
-    # @login_required
-    def post(self):
-        data = request.get_json()
-        student = Student(
-            name=data.get('name'),
-            dob=data.get('dob'),
-            class_id=data.get('class_id'),
-            teacher_id=data.get('teacher_id'),
-            email=data.get('email'),
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    name = data.get('name')
+    username = data.get('username')
+    password = data.get('password')
+    email = data.get('email')
+    subject = data.get('subject')
+    role = data.get('role')
+
+    if role == 'teacher':
+        new_user = Teacher(name=name, username=username, subject=subject, email=email)
+    elif role == 'parent':
+        new_user = Parent(name=name, username=username, email=email)
+    else:
+        return {"message": 'Invalid role.'}, 400
+
+    # Hash the password using bcrypt
+    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+    new_user.password = hashed_password  # Store the bcrypt-hashed password
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return {"message": f'{role.capitalize()} registered successfully.'}, 201
+
+
+
+@app.route('/api/users/login', methods=['POST'])
+def user_login():
+    data = request.get_json()
+    
+    # Validate if required fields are present
+    if not data or not all(key in data for key in ('username', 'password')):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # Query for the user by username (either Teacher or Parent)
+    user = Teacher.query.filter_by(username=data['username']).first() or Parent.query.filter_by(username=data['username']).first()
+
+    # Verify the password
+    if user and bcrypt.check_password_hash(user.password, data['password']):
+        # Generate JWT token upon successful login
+        access_token = create_access_token(identity=user.id)
+        return jsonify(access_token=access_token), 200
+
+    # Invalid credentials
+    return jsonify({"error": "Invalid credentials"}), 401
+
+@app.route('/check-session', methods=['GET'])
+@jwt_required()  
+def check_session():
+    identity = get_jwt_identity()
+
+    user = Teacher.query.filter_by(username=identity['username']).first() or Parent.query.filter_by(username=identity['username']).first()
+
+    if not user:
+        return {"error": 'User not found'}, 404
+    role = identity['role']  
+
+    return {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'role': role
+    }, 200
+
+@app.route('/logout', methods=['DELETE'])
+def logout():
+    session.pop('user_id', None)
+    session.pop('role', None)
+    return {}, 204
+
+# Teacher Routes
+@app.route('/teachers', methods=['GET'])
+@login_required
+@token_required
+def get_teacher(current_user):
+    students = Student.query.filter_by(teacher_id=current_user.id).all()
+    parents = Parent.query.join(Student).filter(Student.teacher_id == current_user.id).all()
+
+    return {
+        'students': [student.to_dict() for student in students],
+        'parents': [parent.to_dict() for parent in parents]
+    }, 200
+
+# Parent Routes
+@app.route('/parents', methods=['GET'])
+@login_required
+@token_required
+def get_parent(current_user):
+    students = Student.query.filter_by(parent_id=current_user.id).all()
+    notifications = Notifications.query.filter_by(parent_id=current_user.id).all()
+    learning_materials = LearningMaterial.query.join(Student).filter(Student.parent_id == current_user.id).all()
+
+    return {
+        'students': [student.to_dict() for student in students],
+        'notifications': [notification.to_dict() for notification in notifications],
+        'learning_materials': [learning_material.to_dict() for learning_material in learning_materials]
+    }, 200
+
+# Notifications Routes
+@app.route('/notifications', methods=['POST'])
+@login_required
+@token_required
+def post_notification(current_user):
+    data = request.get_json()
+    notification = Notifications(
+        message=data.get('message'),
+        parent_id=data.get('parent_id')
+    )
+    db.session.add(notification)
+    db.session.commit()
+    return notification.to_dict(), 201
+
+# Learning Material Routes
+@app.route('/learning-materials', methods=['GET'])
+@login_required
+@token_required
+def get_learning_materials(current_user):
+    learning_materials = LearningMaterial.query.all()
+    return jsonify([lm.to_dict() for lm in learning_materials]), 200
+
+@app.route('/upload', methods=['POST'])
+@login_required
+@token_required
+def upload_learning_material(current_user):
+    if 'file' not in request.files:
+        return {"error": "No file part"}, 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return {"error": "No selected file"}, 400
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+
+        data = request.form
+        learning_material = LearningMaterial(
+            title=data.get('title'),
+            file_path=file_path,
+            teacher_id=current_user.id,
+            subject_id=data.get('subject_id')
         )
-        student.password = data.get('password')
 
-        db.session.add(student)
+        db.session.add(learning_material)
         db.session.commit()
-        return student.to_dict(), 201
 
-    # @login_required
-    def put(self, student_id):
-        data = request.get_json()
-        student = Student.query.get_or_404(student_id)
-        student.name = data.get('name')
-        student.dob = data.get('dob')
-        student.class_id = data.get('class_id')
-        student.teacher_id = data.get('teacher_id')
-        db.session.commit()
-        return student.to_dict(), 200
-
-    # @login_required
-    def patch(self, student_id):
-        data = request.get_json()
-        student = Student.query.get_or_404(student_id)
-        if 'name' in data:
-            student.name = data.get('name')
-        if 'dob' in data:
-            student.dob = data.get('dob')
-        db.session.commit()
-        return student.to_dict(), 200
-
-    # @login_required
-    def delete(self, student_id):
-        student = Student.query.get_or_404(student_id)
-        db.session.delete(student)
-        db.session.commit()
-        return '', 204
-
-# ======================== TEACHER ROUTES =========================
-
-class Teacher(Resource):
-    @login_required
-    def get(self, teacher_id=None):
-        if teacher_id:
-            teacher = Teacher.query.get_or_404(teacher_id)
-            return jsonify(teacher.to_dict()), 200
-        teachers = Teacher.query.all()
-        return jsonify([teacher.to_dict() for teacher in teachers]), 200
-
-    @login_required
-    def post(self):
-        data = request.get_json()
-        teacher = Teacher(
-            name=data.get('name'),
-            email=data.get('email'),
-        )
-        teacher.password = data.get('password')
-
-        db.session.add(teacher)
-        db.session.commit()
-        return jsonify(teacher.to_dict()), 201
-
-    @login_required
-    def put(self, teacher_id):
-        data = request.get_json()
-        teacher = Teacher.query.get_or_404(teacher_id)
-        teacher.name = data.get('name')
-        teacher.email = data.get('email')
-        db.session.commit()
-        return jsonify(teacher.to_dict()), 200
-
-    @login_required
-    def delete(self, teacher_id):
-        teacher = Teacher.query.get_or_404(teacher_id)
-        db.session.delete(teacher)
-        db.session.commit()
-        return '', 204
-
-# ======================== CLASS ROUTES =========================
-
-class Class(Resource):
-    @login_required
-    def get(self, class_id=None):
-        if class_id:
-            class_obj = Class.query.get_or_404(class_id)
-            return class_obj.to_dict(), 200
-        classes = Class.query.all()
-        return [class_obj.to_dict() for class_obj in classes], 200
-
-    @login_required
-    def post(self):
-        data = request.get_json()
-        class_obj = Class(
-            class_name=data.get('class_name'),
-            teacher_id=data.get('teacher_id'),
-        )
-        db.session.add(class_obj)
-        db.session.commit()
-        return class_obj.to_dict(), 201
-
-    @login_required
-    def put(self, class_id):
-        data = request.get_json()
-        class_obj = Class.query.get_or_404(class_id)
-        class_obj.class_name = data.get('class_name')
-        db.session.commit()
-        return class_obj.to_dict(), 200
-
-    @login_required
-    def delete(self, class_id):
-        class_obj = Class.query.get_or_404(class_id)
-        db.session.delete(class_obj)
-        db.session.commit()
-        return '', 204
-
-# ======================== SUBJECT ROUTES =========================
-
-class Subject(Resource):
-    @login_required
-    def get(self, subject_id=None):
-        if subject_id:
-            subject = Subject.query.get_or_404(subject_id)
-            return subject.to_dict(), 200
-        subjects = Subject.query.all()
-        return [subject.to_dict() for subject in subjects], 200
-
-    @login_required
-    def post(self):
-        data = request.get_json()
-        subject = Subject(
-            subject_name=data.get('subject_name'),
-            subject_code=data.get('subject_code'),
-            class_id=data.get('class_id'),
-            teacher_id=data.get('teacher_id'),
-        )
-        db.session.add(subject)
-        db.session.commit()
-        return subject.to_dict(), 201
-
-    @login_required
-    def put(self, subject_id):
-        data = request.get_json()
-        subject = Subject.query.get_or_404(subject_id)
-        subject.subject_name = data.get('subject_name')
-        subject.subject_code = data.get('subject_code')
-        db.session.commit()
-        return subject.to_dict(), 200
-
-    @login_required
-    def delete(self, subject_id):
-        subject = Subject.query.get_or_404(subject_id)
-        db.session.delete(subject)
-        db.session.commit()
-        return '', 204
-
-# ======================== NOTIFICATION ROUTES =========================
-
-class Notification(Resource):
-    @login_required
-    def get(self, notification_id=None):
-        if notification_id:
-            notification = Notification.query.get_or_404(notification_id)
-            return notification.to_dict(), 200
-        notifications = Notification.query.all()
-        return [notification.to_dict() for notification in notifications], 200
-
-    @login_required
-    def post(self):
-        data = request.get_json()
-        notification = Notification(
-            message=data.get('message'),
-        )
-        db.session.add(notification)
-        db.session.commit()
-        return notification.to_dict(), 201
-
-    @login_required
-    def delete(self, notification_id):
-        notification = Notification.query.get_or_404(notification_id)
-        db.session.delete(notification)
-        db.session.commit()
-        return '', 204
-
-# ======================== LEARNING MATERIAL ROUTES =========================
-
-class LearningMaterial(Resource):
-    @login_required
-    def get(self, learning_material_id=None):
-        if learning_material_id:
-            learning_material = LearningMaterial.query.get_or_404(learning_material_id)
-            return learning_material.to_dict(), 200
-        learning_materials = LearningMaterial.query.all()
-        return [learning_material.to_dict() for learning_material in learning_materials], 200
-
-    @login_required
-    def delete(self, learning_material_id):
-        learning_material = LearningMaterial.query.get_or_404(learning_material_id)
-        db.session.delete(learning_material)
-        db.session.commit()
-        return '', 204
-
-# Route for uploading learning material (POST with file)
-class LearningMaterialUpload(Resource):
-    @login_required
-    def post(self):
-        # Ensure the user is a teacher
-        user_id = session.get('user_id')
-        teacher = Teacher.query.get(user_id)
-
-        if 'file' not in request.files:
-            return {"error": "No file part"}, 400
-
-        file = request.files['file']
-
-        if file.filename == '':
-            return {"error": "No selected file"}, 400
-
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
-            # Save the file path and related information in the database
-            data = request.form  # Get additional form data
-            learning_material = LearningMaterial(
-                title=data.get('title'),
-                file_path=filename,
-                teacher_id=teacher.id,
-                subject_id=data.get('subject_id')  # Assuming subject is provided
-            )
-
-            db.session.add(learning_material)
-            db.session.commit()
-
-            return {"message": "File uploaded successfully"}, 201
-
+        return {"message": "File uploaded successfully", "learning_material": learning_material.to_dict()}, 201
+    else:
         return {"error": "Invalid file format"}, 400
 
-# Route for downloading learning material (GET to download file)
-class LearningMaterialDownload(Resource):
-    @login_required
-    def get(self, learning_material_id):
-        # Fetch the learning material by ID
-        learning_material = LearningMaterial.query.get_or_404(learning_material_id)
+@app.route('/download/<int:learning_material_id>', methods=['GET'])
+@login_required
+@token_required
+def download_learning_material(current_user, learning_material_id):
+    learning_material = LearningMaterial.query.get_or_404(learning_material_id)
+    file_path = learning_material.file_path
+    file_name = os.path.basename(file_path)
 
-        # Extract the file path stored in the database
-        file_path = learning_material.file_path
-        file_name = os.path.basename(file_path)
+    try:
+        return send_from_directory(app.config['UPLOAD_FOLDER'], file_name, as_attachment=True)
+    except FileNotFoundError:
+        return {"error": "File not found"}, 404
 
-        # Send the file to the user for download
-        try:
-            return send_from_directory(app.config['UPLOAD_FOLDER'], file_name, as_attachment=True)
-        except FileNotFoundError:
-            return {"error": "File not found"}, 404
+# Password Reset Routes
+@app.route('/password-reset-request', methods=['POST'])
+def request_password_reset():
+    data = request.get_json()
+    email = data.get('email')
 
-# ======================== ROUTE REGISTRATION =========================
-api.add_resource(Welcome, '/', '/welcome')
-api.add_resource(Signup, '/signup')
-api.add_resource(Login, '/login')
-api.add_resource(CheckSession, '/check-session')
+    user = Teacher.query.filter_by(email=email).first() or Parent.query.filter_by(email=email).first()
 
-api.add_resource(Student, '/students', '/students/<int:student_id>')
-api.add_resource(Teacher, '/teachers', '/teachers/<int:teacher_id>')
-api.add_resource(Class, '/classes', '/classes/<int:class_id>')
-api.add_resource(Subject, '/subjects', '/subjects/<int:subject_id>')
-api.add_resource(Notification, '/notifications', '/notifications/<int:notification_id>')
-api.add_resource(LearningMaterial, '/learning_materials', '/learning_materials/<int:learning_material_id>')
-api.add_resource(LearningMaterialUpload, '/upload')
-api.add_resource(LearningMaterialDownload, '/download/<int:learning_material_id>')
+    if not user:
+        return {"message": 'User not found'}, 404
 
+    token = secrets.token_urlsafe(20)
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+
+    reset_token = PasswordResetToken(user_id=user.id, token=token, expiry_date=expiry)
+    db.session.add(reset_token)
+    db.session.commit()
+
+    reset_link = f"{app.config['FRONTEND_URL']}/reset-password?token={token}"
+    msg = Message('Password Reset Request', recipients=[email])
+    msg.body = f"Use the following link to reset your password: {reset_link}"
+    mail.send(msg)
+
+    return {"message": 'Password reset link sent to your email.'}, 200
+
+@app.route('/password-reset-confirm', methods=['POST'])
+def confirm_password_reset():
+    data = request.get_json()
+    token = data.get('token')
+    new_password = data.get('new_password')
+
+    reset_token = PasswordResetToken.query.filter_by(token=token).first()
+
+    if not reset_token:
+        return {"message": 'Invalid or expired token'}, 400
+
+    if reset_token.expiry_date < datetime.datetime.utcnow():
+        return {"message": 'Token has expired'}, 400
+
+    user = Teacher.query.get(reset_token.user_id) or Parent.query.get(reset_token.user_id)
+
+    if not user:
+        return {"message": 'User not found'}, 404
+
+    user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    db.session.commit()
+
+    db.session.delete(reset_token)
+    db.session.commit()
+
+    return {"message": 'Password has been updated successfully.'}, 200
+
+@app.route('/contact', methods=['POST'])
+def contact():
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    message = data.get('message')
+
+    # Send an email with the contact form data
+    msg = Message(f"New Contact Form Submission from {name}", recipients=['your-email@example.com'])
+    msg.body = f"Message from {name} ({email}):\n\n{message}"
+    mail.send(msg)
+
+    return jsonify({"message": "Message sent successfully!"}), 200
+
+
+# App execution point
 if __name__ == '__main__':
-    app.run(port=Config.PORT, debug=True) 
+    app.run(port=5555, debug=True)
