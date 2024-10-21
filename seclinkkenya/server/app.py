@@ -487,24 +487,24 @@ api.add_resource(CheckSession, '/check-session')  # Check session route
 api.add_resource(Logout, '/logout')  # Logout route
 
 # Teacher-related routes
-api.add_resource(Teacher, '/teachers', '/teachers/<int:teacher_id>')  # Access teacher details, students, parents, etc.
+api.add_resource(Teacher, '/teachers', '/teachers/<int:teacher_id>') 
 
 # Parent-related routes
-api.add_resource(Parent, '/parents', '/parents/<int:parent_id>')  # Access parent details, notifications, learning materials
+api.add_resource(Parent, '/parents', '/parents/<int:parent_id>')  
 
 # Notification routes
-api.add_resource(Notifications, '/notifications', '/notifications/<int:notification_id>')  # Access notifications
+api.add_resource(Notifications, '/notifications', '/notifications/<int:notification_id>')  
 
 # Learning material routes
-api.add_resource(LearningMaterial, '/learning-materials', '/learning-materials/<int:learning_material_id>')  # Access learning materials
-api.add_resource(LearningMaterialUpload, '/upload')  # Upload learning material
-api.add_resource(LearningMaterialDownload, '/download/<int:learning_material_id>')  # Download learning material
+api.add_resource(LearningMaterial, '/learning-materials', '/learning-materials/<int:learning_material_id>')  
+api.add_resource(LearningMaterialUpload, '/upload')  
+api.add_resource(LearningMaterialDownload, '/download/<int:learning_material_id>')  
 
 # Password reset routes
-api.add_resource(RequestPasswordReset, '/password-reset-request')  # Password reset request
-api.add_resource(PasswordResetConfirm, '/password-reset-confirm')  # Password reset confirmation
+api.add_resource(RequestPasswordReset, '/password-reset-request')  
+api.add_resource(PasswordResetConfirm, '/password-reset-confirm')  
 
 
 # app execution point
 if __name__ == '__main__':
-    app.run(port=5555, debug=True)
+    app.run(port=5555, debug=True) # debug=True
