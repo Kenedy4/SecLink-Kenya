@@ -7,15 +7,18 @@ from sqlalchemy.orm import validates
 
 db = SQLAlchemy()
 
-# Association table for students and subjects (no student_name or class_id here, only linking student_id and subject_id)
+# Association table for students and subjects (including student_name and class_id)
 student_subject = db.Table('student_subject',
     db.Column('student_id', db.Integer, db.ForeignKey('students.id')),
+    db.Column('student_name', db.String(100), nullable=False),
+    db.Column('class_id', db.Integer, db.ForeignKey('classes.id')),
     db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id'))
 )
 
 # Base class for common user functionality
 class BaseUser(db.Model, SerializerMixin):
     __abstract__ = True
+    name = db.Column(db.String(100), nullable=False)  # Inherited by Teacher, Parent, and Student
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=True)
@@ -38,7 +41,6 @@ class BaseUser(db.Model, SerializerMixin):
         assert '@' in address, "Invalid email format"
         return address
 
-
 class Teacher(BaseUser):
     __tablename__ = 'teachers'
     id = db.Column(db.Integer, primary_key=True)
@@ -51,13 +53,13 @@ class Teacher(BaseUser):
     def to_dict(self):
         return {
             'id': self.id,
+            'name': self.name,  # Inherited from BaseUser
             'username': self.username,
             'email': self.email,
             'subject': self.subject,
             'classes': [c.to_dict() for c in self.classes],
             'learning_materials': [lm.to_dict() for lm in self.learning_materials]
         }
-
 
 class Parent(BaseUser):
     __tablename__ = 'parents'
@@ -70,17 +72,16 @@ class Parent(BaseUser):
     def to_dict(self):
         return {
             'id': self.id,
+            'name': self.name,  # Inherited from BaseUser
             'username': self.username,
             'email': self.email,
             'children': [child.to_dict() for child in self.children],
             'notifications': [notification.to_dict() for notification in self.notifications]
         }
 
-
 class Student(BaseUser):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
     dob = db.Column(db.Date, nullable=False)
     overall_grade = db.Column(db.String(2), nullable=True)
 
@@ -96,7 +97,7 @@ class Student(BaseUser):
     def to_dict(self):
         return {
             'id': self.id,
-            'name': self.name,
+            'name': self.name,  # Inherited from BaseUser
             'dob': self.dob.isoformat(),
             'class_id': self.class_id,
             'teacher_id': self.teacher_id,
@@ -132,7 +133,6 @@ class Student(BaseUser):
             return 'D'
         return 'E'
 
-
 class Grade(db.Model, SerializerMixin):
     __tablename__ = 'grades'
     id = db.Column(db.Integer, primary_key=True)
@@ -151,7 +151,6 @@ class Grade(db.Model, SerializerMixin):
             'subject': self.subject.subject_name
         }
 
-
 class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
     id = db.Column(db.Integer, primary_key=True)
@@ -167,7 +166,6 @@ class Class(db.Model, SerializerMixin):
             'teacher_id': self.teacher_id,
             'subjects': [subject.to_dict() for subject in self.subjects]
         }
-
 
 class Subject(db.Model, SerializerMixin):
     __tablename__ = 'subjects'
@@ -185,7 +183,6 @@ class Subject(db.Model, SerializerMixin):
             'class_id': self.class_id,
             'teacher_id': self.teacher_id
         }
-
 
 class Notifications(db.Model, SerializerMixin):
     __tablename__ = 'notifications'
@@ -206,7 +203,6 @@ class Notifications(db.Model, SerializerMixin):
             'parent_id': self.parent_id
         }
 
-
 class LearningMaterial(db.Model, SerializerMixin):
     __tablename__ = 'learning_material'
     id = db.Column(db.Integer, primary_key=True)
@@ -225,7 +221,6 @@ class LearningMaterial(db.Model, SerializerMixin):
             'teacher_id': self.teacher_id,
             'student_id': self.student_id
         }
-
 
 class PasswordResetToken(db.Model, SerializerMixin):
     __tablename__ = 'password_reset_tokens'
@@ -249,3 +244,4 @@ class PasswordResetToken(db.Model, SerializerMixin):
             'teacher_id': self.teacher_id,
             'student_id': self.student_id
         }
+        
