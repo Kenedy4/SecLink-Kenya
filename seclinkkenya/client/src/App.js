@@ -1,23 +1,24 @@
-import './App.css';
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Home from './components/Home';
 import Signup from './components/Signup';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import FileUpload from './components/FileUpload';
-import PasswordReset from './components/PasswordReset';
+import AboutUs from './components/AboutUs';
+import ContactUs from './components/ContactUs';
+import Footer from './components/Footer';
 
 function App() {
   return (
     <Router>
       <div>
         <Routes>
+          <Route path="/" element={<Home />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/upload" element={<FileUpload />} />
-          <Route path="/password-reset" element={<PasswordReset />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/contactus" element={<ContactUs />} />
         </Routes>
+        <Footer />
       </div>
     </Router>
   );
