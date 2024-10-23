@@ -213,6 +213,11 @@ footer .social-icons a:hover {
 }
 
 /* Stylying Parent DashBoard */
+/* General Container Styling */
+div {
+  margin: 0 10%; /* Added margin for the container */
+}
+
 /* General Table Styling */
 table {
   width: 100%;
@@ -283,7 +288,7 @@ table th, table td {
 
   td {
     text-align: left;
-    padding-left: 50%;
+    padding-left: 20%;
     position: relative;
   }
 
@@ -291,10 +296,9 @@ table th, table td {
     content: attr(data-label);
     position: absolute;
     left: 0;
-    width: 50%;
+    width: 20%;
     padding-left: 10px;
     font-weight: bold;
     text-align: left;
   }
 }
-
