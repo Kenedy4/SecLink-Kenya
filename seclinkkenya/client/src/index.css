@@ -1,0 +1,300 @@
+/* Global Styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f3e8e8;
+}
+
+nav {
+  background-color: #635757;
+  padding: 10px;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: space-around;
+}
+
+nav ul li {
+  display: inline;
+}
+
+nav ul li a {
+  color: rgb(238, 167, 167);
+  text-decoration: none;
+  padding: 10px 20px;
+}
+
+nav ul li a:hover {
+  background-color: #555;
+  color: rgb(63, 19, 19);
+}
+
+/* Headings */
+h1,
+h2 {
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Card Styles */
+.card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  max-width: 400px;
+  margin: 20px auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-card {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.auth-card form {
+  width: 100%;
+}
+
+/* Input and Select Styles */
+form input,
+form select,
+form textarea {
+  padding: 12px;
+  margin: 10px 0;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  transition: border-color 0.3s ease;
+}
+
+form input:hover,
+form select:hover,
+form textarea:hover {
+  border-color: #7a0909;
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+  outline: none;
+  border-color: #7a0909;
+}
+
+/* Button Styles */
+form button {
+  padding: 12px 20px;
+  background-color: #7a0909;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s ease;
+}
+
+form button:hover {
+  background-color: #555;
+}
+
+/* Centering the Card */
+.auth-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  max-width: 400px;
+  margin: 0 auto;
+  margin-top: 100px;
+}
+
+.auth-card p {
+  margin-top: 20px;
+  color: #635757;
+}
+
+/* Footer Styles */
+footer {
+  background-color: #d88a8a;
+  color: rgb(219, 210, 210);
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+footer h2 {
+  margin-top: 0;
+}
+
+.footer-socials {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.footer-socials a {
+  margin-left: 20px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 24px;
+  transition: color 0.3s ease;
+}
+
+.footer-socials a:hover {
+  color: #635757;
+}
+
+/* Social media icons */
+footer .social-icons {
+  display: flex;
+  justify-content: center;
+  margin-left: auto;
+}
+
+footer .social-icons a {
+  color: #fff;
+  margin: 0 10px;
+  font-size: 20px;
+  transition: color 0.3s ease;
+}
+
+footer .social-icons a:hover {
+  color: #444;
+}
+
+/* Additional Styles */
+.success-message {
+  color: green;
+  margin-top: 20px;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+
+/* Adjusting for Mobile */
+@media (max-width: 768px) {
+  nav ul {
+    flex-direction: column;
+  }
+
+  .card {
+    max-width: 90%;
+    margin: 20px;
+  }
+
+  footer {
+    flex-direction: column;
+  }
+
+  footer .footer-socials {
+    margin-top: 20px;
+  }
+}
+
+/* Stylying Parent DashBoard */
+/* General Table Styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 1rem;
+  text-align: left;
+}
+
+/* Table Header Styling */
+th {
+  background-color: #004f9a; /* Adjust to your system's previous header color */
+  color: #ffffff;
+  padding: 10px;
+  border: 1px solid #dddddd;
+  text-align: center;
+}
+
+/* Table Cell Styling */
+td {
+  padding: 10px;
+  border: 1px solid #dddddd;
+  text-align: center;
+  background-color: #f2f2f2; /* Adjust to your system’s previous background color */
+}
+
+/* Hover Effect on Table Rows */
+tr:hover {
+  background-color: #d1e7f1; /* Adjust hover color */
+}
+
+/* Hover Effect on Individual Table Cells */
+td:hover {
+  background-color: #bcd9ea; /* Adjust hover color */
+}
+
+/* Alternating Row Colors */
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Style for Header Row Hover */
+th:hover {
+  background-color: #003b7a; /* Adjust hover color for header */
+}
+
+/* Additional Styling */
+table tr {
+  transition: background-color 0.3s ease; /* Smooth transition for hover */
+}
+
+table th, table td {
+  transition: background-color 0.3s ease; /* Smooth transition for cell hover */
+}
+
+/* Responsive Table */
+@media screen and (max-width: 600px) {
+  table, thead, tbody, th, td, tr {
+    display: block;
+    width: 100%;
+  }
+  
+  th {
+    position: relative;
+    top: 0;
+    background-color: #004f9a;
+  }
+
+  td {
+    text-align: left;
+    padding-left: 50%;
+    position: relative;
+  }
+
+  td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 50%;
+    padding-left: 10px;
+    font-weight: bold;
+    text-align: left;
+  }
+}
+
