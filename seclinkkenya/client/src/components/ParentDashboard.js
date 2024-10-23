@@ -1,5 +1,3 @@
-// src/components/Dashboard.js
-
 import React, { useEffect, useState } from 'react';
 
 const ParentDashboard = () => {
@@ -11,7 +9,7 @@ const ParentDashboard = () => {
   const getStudentDetails = async (studentId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/students/${studentId}`, {
+      const response = await fetch(`http://localhost:5555/students/${studentId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -32,7 +30,7 @@ const ParentDashboard = () => {
   const getNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/notifications', {
+      const response = await fetch('http://localhost:5555/notifications', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -53,7 +51,7 @@ const ParentDashboard = () => {
   const downloadLearningMaterials = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/learning-material', {
+      const response = await fetch('http://localhost:5555/learning-material', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -84,17 +82,66 @@ const ParentDashboard = () => {
 
       <div id="studentDetails">
         <h2>Student Details</h2>
-        <pre>{JSON.stringify(studentDetails, null, 2)}</pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{studentDetails.name}</td>
+              <td>{studentDetails.class_name}</td>
+              <td>{studentDetails.age}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div id="notifications">
         <h2>Notifications</h2>
-        <pre>{JSON.stringify(notifications, null, 2)}</pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {notifications.map((notification, index) => (
+              <tr key={index}>
+                <td>{notification.date}</td>
+                <td>{notification.message}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div id="learningMaterials">
         <h2>Learning Materials</h2>
-        <pre>{JSON.stringify(learningMaterials, null, 2)}</pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Download</th>
+            </tr>
+          </thead>
+          <tbody>
+            {learningMaterials.map((material, index) => (
+              <tr key={index}>
+                <td>{material.title}</td>
+                <td>
+                  <a href={`http://localhost:5555/download/${material.file_path}`} download>
+                    Download
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

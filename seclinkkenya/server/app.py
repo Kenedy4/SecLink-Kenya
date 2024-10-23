@@ -54,7 +54,7 @@ def signup():
     username = data.get('username')
     password = data.get('password')  # Raw password from request
     email = data.get('email')
-    subject = data.get('subject')  # This will be used if the user is a teacher
+    subject = data.get('subject')  # Subject is only used if the user is a teacher
     role = data.get('role')  # Either 'Teacher' or 'Parent'
 
     # Check if all required fields are provided
@@ -65,7 +65,7 @@ def signup():
     password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
     # Handle role-based registration
-    if role == 'Teacher':
+    if role == 'teacher':
         # Check if the subject is provided for the Teacher role
         if not subject:
             return jsonify({'message': 'Subject is required for Teacher role'}), 400
@@ -73,7 +73,7 @@ def signup():
         # Create a new Teacher user
         new_user = Teacher(name=name, username=username, email=email, password_hash=password_hash, subject=subject)
 
-    elif role == 'Parent':
+    elif role == 'parent':
         # Create a new Parent user
         new_user = Parent(name=name, username=username, email=email, password_hash=password_hash)
 
@@ -86,6 +86,7 @@ def signup():
 
     # Return success message
     return jsonify({'message': 'User registered successfully'}), 201
+
 
 # Login Endpoint
 @app.route('/login', methods=['POST'])

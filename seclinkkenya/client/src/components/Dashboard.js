@@ -3,52 +3,62 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import ParentDashboard from "./ParentDashboard";
 import TeacherDashboard from "./TeacherDashboard";
+
 function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isRole, setIsRole] = useState("");
-
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");  // Retrieve the token from localStorage
-    console.log("THIS TOKEN FROM DASHBOARD ", token)
-    const role = localStorage.getItem("role");  // Retrieve the token from localStorage
-    console.log("THIS TOKEN FROM role ", role)
-    setIsRole(role)
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    setIsRole(role);
     if (!token) {
-      navigate("/login");  // Redirect if no token is found
+      navigate("/login");
       return;
     } else {
       setIsAuthenticated(true);
     }
-    // var component;
-    
-    // Make the session check request with the token
-  //   axios
-  //     .get("http://localhost:5555/check-session", {
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,  // Include the token in the Authorization header
-  //       },
-  //     })
-  //     .then((response) => {
-  //       setIsAuthenticated(true);  // User is authenticated
-  //     })
-  //     .catch((error) => {
-  //       console.error("Session check failed", error);
-  //       localStorage.removeItem("token");  // Clear the token if the session check fails
-  //       navigate("/login");  // Redirect to login
-  //     });
   }, [navigate]);
 
+  const handleLogout = () => {
+    const token = localStorage.getItem("token");
+
+    // Send a request to the backend to log out
+    axios
+      .post(
+        "http://localhost:5555/logout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Include the token in the Authorization header
+          },
+        }
+      )
+      .then((response) => {
+        console.log(response.data.message);
+        // Clear token and redirect to login
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        navigate("/login");
+      })
+      .catch((error) => {
+        console.error("Logout failed", error);
+      });
+  };
+
   if (!isAuthenticated) {
-    return <div>Loading...</div>;  // Display loading state until authentication is verified
+    return <div>Loading...</div>;
   }
 
   return (
     <div>
-      <h1>Dashboard</h1>
+      {/* <h1>Dashboard</h1> */}
       {/* Render dashboard content */}
-      {isRole === 'Parent' ? <ParentDashboard /> :<TeacherDashboard />}
+      {isRole === "Parent" ? <ParentDashboard /> : <TeacherDashboard />}
+
+      {/* Logout button */}
+      <button onClick={handleLogout}>Logout</button>
     </div>
   );
 }
