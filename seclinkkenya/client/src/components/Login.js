@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext"; // Import AuthContext
 
 function Auth() {
   const [email, setEmail] = useState("");
@@ -10,6 +11,7 @@ function Auth() {
   const [loading, setLoading] = useState(false); // To track button state
   const [errorMessage, setErrorMessage] = useState(""); // For inline error handling
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);  // Access the login function from AuthContext
 
   // Login function
   const handleLoginSubmit = (e) => {
@@ -20,10 +22,11 @@ function Auth() {
     axios
       .post("https://seclink-server.onrender.com//login", { username, password })
       .then((response) => {
-        console.log(response)
-        const token = response.data.token; // Ensure you use access_token from response
+        const token = response.data.token;
         localStorage.setItem("token", token); // Store the token in localStorage
-        localStorage.setItem("role", response.data.role); // Store the token in localStorage
+        localStorage.setItem("role", response.data.role); // Store role if needed
+
+        login();  // Call login function from AuthContext to update isLoggedIn state
 
         setLoading(false);
         navigate("/dashboard"); // Redirect to dashboard
@@ -60,8 +63,7 @@ function Auth() {
         // Login form
         <form onSubmit={handleLoginSubmit}>
           <h2>Login</h2>
-          {errorMessage && <p className="error-message">{errorMessage}</p>}{" "}
-          {/* Show error messages */}
+          {errorMessage && <p className="error-message">{errorMessage}</p>}
           <label>Username: </label>
           <input
             type="text"
@@ -90,8 +92,7 @@ function Auth() {
         // Password Reset Form
         <form onSubmit={handlePasswordResetSubmit}>
           <h2>Reset Password</h2>
-          {errorMessage && <p className="error-message">{errorMessage}</p>}{" "}
-          {/* Show error messages */}
+          {errorMessage && <p className="error-message">{errorMessage}</p>}
           <label>Email: </label>
           <input
             type="email"
