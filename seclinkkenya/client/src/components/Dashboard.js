@@ -27,7 +27,7 @@ function Dashboard() {
     // Send a request to the backend to log out
     axios
       .post(
-        "http://localhost:5555/logout",
+        "https://seclink-server.onrender.com/logout",
         {},
         {
           headers: {

@@ -30,7 +30,7 @@ function Signup() {
     };
 
     axios
-      .post("http://localhost:5555/signup", payload)
+      .post("https://seclink-server.onrender.com/signup", payload)
       .then((response) => {
         setSignupSuccess(true);
         setLoading(false);

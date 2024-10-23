@@ -18,7 +18,7 @@ function Auth() {
     setErrorMessage(""); // Clear error messages
 
     axios
-      .post("http://localhost:5555/login", { username, password })
+      .post("https://seclink-server.onrender.com//login", { username, password })
       .then((response) => {
         console.log(response)
         const token = response.data.token; // Ensure you use access_token from response
@@ -41,7 +41,7 @@ function Auth() {
     setErrorMessage("");
 
     axios
-      .post("http://localhost:5555/password-reset-request", { email })
+      .post("https://seclink-server.onrender.com/password-reset-request", { email })
       .then((response) => {
         setLoading(false);
         alert(response.data.message);
