@@ -1,3 +1,4 @@
+import re
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_serializer import SerializerMixin
@@ -5,8 +6,17 @@ from sqlalchemy_serializer import SerializerMixin
 from flask_bcrypt import generate_password_hash, check_password_hash
 from datetime import datetime
 from sqlalchemy.orm import validates
+from sqlalchemy import MetaData
 
-db = SQLAlchemy()
+
+metadata = MetaData(naming_convention={
+     "pk": "pk_%(table_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s"
+})
+
+db = SQLAlchemy(metadata=metadata)
 
 # Define the association table for students and subjects
 student_subject = db.Table('student_subject',
@@ -36,6 +46,13 @@ class BaseUser(db.Model, SerializerMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    @validates('email')
+    def validate_email(self, key, email):
+        email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        if not re.match(email_regex, email):
+            raise ValueError("Invalid email address")
+        return email
 
 class Teacher(BaseUser):
     __tablename__ = 'teachers'

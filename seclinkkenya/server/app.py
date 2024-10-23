@@ -1,82 +1,41 @@
 import os
 from functools import wraps
 from flask import Flask, jsonify, request, send_from_directory, session
-from models import Grade, db, Student, Teacher, Parent, Class, Subject, Notifications, LearningMaterial, PasswordResetToken
+from models import Class, LearningMaterial, Notifications, Student, Subject, db, Teacher, Parent, PasswordResetToken  # Import necessary models
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_
 from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt, jwt_required, get_jwt_identity
 import datetime
 import secrets
 from flask_mail import Mail, Message
 from flask_cors import CORS
+from config import Config  # Import the config class
 
-# Flask app setup
+# Flask app setup using Config class
 app = Flask(__name__)
-app.config['JWT_SECRET_KEY'] = 'SECRET_KEY'  # Use a strong secret key in production
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///seclinkkenya.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'docx', 'txt'}
-app.config['PORT'] = 5555
+app.config.from_object(Config)  # Load configuration from config.py
 
-# Flask-Mail setup
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'YOUR_EMAIL_ADDRESS'
-app.config['MAIL_PASSWORD'] = 'YOUR_EMAIL_PASSWORD'
-
-# Initializing necessary extensions
+# Initialize extensions
 migrate = Migrate(app, db)
-bcrypt = Bcrypt(app)  # Using bcrypt for hashing
+bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 mail = Mail(app)
 CORS(app)
 
-# Initializing the database
+# Initialize the database
 db.init_app(app)
-
-# Ensure the 'uploads' folder exists
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
 
 # Helper function to check allowed file extensions
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-# Token required decorator
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token or not token.startswith("Bearer "):
-            return jsonify({'message': 'Token is missing or in incorrect format!'}), 403
-
-        try:
-            token = token.split()[1]  # Extract token part
-            decoded_token = jwt.decode_token(token)
-            current_user = Teacher.query.get(decoded_token['identity']) or Parent.query.get(decoded_token['identity'])
-            if not current_user:
-                return jsonify({'message': 'User not found!'}), 404
-        except Exception as e:
-            return jsonify({'message': f'Error processing token: {str(e)}'}), 400
-
-        # Pass current_user to the decorated function
-        return f(current_user, *args, **kwargs)
-
-    return decorated
-
-# Verify password using bcrypt
-def verify_password(user, entered_password):
-    # Verify using bcrypt
-    return bcrypt.check_password_hash(user.password, entered_password)
 
 # Error handler for internal server errors
 @app.errorhandler(500)
 def internal_server_error(e):
     return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
 
 ######  Routes ######
 
@@ -84,254 +43,317 @@ def internal_server_error(e):
 def welcome():
     return jsonify({"message": "Welcome to SecLink Kenya"}), 200
 
-# Auth Routes
-
-@app.route('/signup', methods=['POST'])
+# Signup Endpoint
+# Signup Endpoint
 @app.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
+
+    # Extract the fields from the request data
     name = data.get('name')
     username = data.get('username')
-    password = data.get('password')
+    password = data.get('password')  # Raw password from request
     email = data.get('email')
-    subject = data.get('subject')
-    role = data.get('role')
+    subject = data.get('subject')  # This will be used if the user is a teacher
+    role = data.get('role')  # Either 'Teacher' or 'Parent'
 
-    # Check if the username already exists in Teacher or Parent tables
-    existing_user = Teacher.query.filter_by(username=username).first() or Parent.query.filter_by(username=username).first()
-
-    if existing_user:
-        return {"message": "Username already exists"}, 400  # Return message if username exists
-
-    # Proceed with user creation based on role
-    if role == 'teacher':
-        new_user = Teacher(name=name, username=username, subject=subject, email=email)
-    elif role == 'parent':
-        new_user = Parent(name=name, username=username, email=email)
-    else:
-        return {"message": 'Invalid role.'}, 400
+    # Check if all required fields are provided
+    if not (name and username and password and email and role):
+        return jsonify({'message': 'All fields are required'}), 400
 
     # Hash the password using bcrypt
-    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-    new_user.password = hashed_password  # Store the bcrypt-hashed password
+    password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
+    # Handle role-based registration
+    if role == 'Teacher':
+        # Check if the subject is provided for the Teacher role
+        if not subject:
+            return jsonify({'message': 'Subject is required for Teacher role'}), 400
+        
+        # Create a new Teacher user
+        new_user = Teacher(name=name, username=username, email=email, password_hash=password_hash, subject=subject)
+
+    elif role == 'Parent':
+        # Create a new Parent user
+        new_user = Parent(name=name, username=username, email=email, password_hash=password_hash)
+
+    else:
+        return jsonify({'message': 'Invalid role'}), 400
+
+    # Add the new user to the database
     db.session.add(new_user)
     db.session.commit()
 
-    return {"message": f'{role.capitalize()} registered successfully.'}, 201
+    # Return success message
+    return jsonify({'message': 'User registered successfully'}), 201
 
-
+# Login Endpoint
 @app.route('/login', methods=['POST'])
 def login():
-    # Parse the request data (username and password)
     data = request.get_json()
 
     # Ensure required fields are present
     if not data or not all(key in data for key in ['username', 'password']):
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Query both Teacher and Parent tables in one go using SQLAlchemy or_
-    user = Teacher.query.filter(Teacher.username == data['username']).first() or \
-           Parent.query.filter(Parent.username == data['username']).first()
-
-    if user:
-        print(f"User found: {user}")  # Debug the user found
-        print(f"Stored Hashed Password: {user.password}")  # Debug the stored password hash
-        print(f"Provided Password: {data['password']}")  # Debug the provided password
-        
-        # Verify the password using bcrypt's check_password_hash
-        if bcrypt.check_password_hash(user.password, data['password']):
-            # If password is valid, create and return JWT access token
-            access_token = create_access_token(identity=user.id)
-            return jsonify(access_token=access_token), 200
-        else:
-            # If password is incorrect
-            print("Invalid password")  # Debug password mismatch
-            return jsonify({"error": "Invalid credentials"}), 401
-
-    # If user not found
-    print("User not found")  # Debug user not found
-    return jsonify({"error": "User not found"}), 404
-
-
-@app.route('/check-session', methods=['GET'])
-@jwt_required()  
-def check_session():
-    identity = get_jwt_identity()
-
-    user = Teacher.query.filter_by(id=identity).first() or Parent.query.filter_by(id=identity).first()
+    # Query both Teacher and Parent tables for the user
+    user = Teacher.query.filter_by(username=data['username']).first() or \
+           Parent.query.filter_by(username=data['username']).first()
 
     if not user:
-        return jsonify({"error": 'User not found'}), 404
+        return jsonify({"error": "User not found"}), 404  # If no user is found
 
-    return {
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'role': 'teacher' if isinstance(user, Teacher) else 'parent'
-    }, 200
+    # Use bcrypt to compare the entered password with the hashed password in the database
+    if bcrypt.check_password_hash(user.password_hash, data['password']):
+        # If password is correct, generate a JWT token with the role included
+        token = create_access_token(identity={"id": user.id, "role": user.__class__.__name__}, expires_delta=datetime.timedelta(hours=3))
+        return jsonify({"token": token}), 200
+    else:
+        return jsonify({"error": "Invalid credentials"}), 401  # If password is incorrect
 
-@app.route('/logout', methods=['DELETE'])
+@app.route('/logout', methods=['POST'])
+@jwt_required()  # Ensure the user is logged in
 def logout():
-    session.pop('user_id', None)
-    session.pop('role', None)
-    return {}, 204
+    # Here we can optionally blacklist the token or just return a success message
+    jti = get_jwt()["jti"]  # JWT ID (jti) is unique identifier for the token
+    # If token blacklisting is enabled, add the jti to the blacklist (this is optional)
+    
+    return jsonify({"message": "Logged out successfully"}), 200
 
-# Teacher Routes
-@app.route('/teachers', methods=['GET'])
-@token_required  # Only token_required is used
-def get_teacher(current_user):
-    students = Student.query.filter_by(teacher_id=current_user.id).all()
-    parents = Parent.query.join(Student).filter(Student.teacher_id == current_user.id).all()
+# Teacher View all or single students by ID and class
+@app.route('/students', methods=['GET'])
+@jwt_required()
+def view_students():
+    identity = get_jwt_identity()
+    user = Teacher.query.get(identity['user_id'])
 
-    return {
-        'students': [student.to_dict() for student in students],
-        'parents': [parent.to_dict() for parent in parents]
-    }, 200
+    if identity['role'] == 'Teacher':
+        class_id = request.args.get('class_id')
+        if class_id:
+            students = Student.query.filter_by(class_id=class_id).all()
+        else:
+            students = Student.query.all()
 
-# Parent Routes
-@app.route('/parents', methods=['GET'])
-@token_required  # Only token_required is used
-def get_parent(current_user):
-    students = Student.query.filter_by(parent_id=current_user.id).all()
-    notifications = Notifications.query.filter_by(parent_id=current_user.id).all()
-    learning_materials = LearningMaterial.query.join(Student).filter(Student.parent_id == current_user.id).all()
+        return jsonify([student.to_dict() for student in students]), 200
+    else:
+        return jsonify({'message': 'Unauthorized'}), 403
 
-    return {
-        'students': [student.to_dict() for student in students],
-        'notifications': [notification.to_dict() for notification in notifications],
-        'learning_materials': [learning_material.to_dict() for learning_material in learning_materials]
-    }, 200
+# Teacher Upload/Update Learning Materials
+@app.route('/learning-material', methods=['POST', 'PUT'])
+@jwt_required()
+def upload_learning_material():
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':
+        data = request.get_json()
+        if request.method == 'POST':
+            material = LearningMaterial(
+                title=data['title'],
+                file_path=data['file_path'],
+                teacher_id=identity['user_id']
+            )
+            db.session.add(material)
+            db.session.commit()
+        elif request.method == 'PUT':
+            material = LearningMaterial.query.get(data['id'])
+            material.title = data['title']
+            material.file_path = data['file_path']
+            db.session.commit()
 
-# Notifications Routes
+        return jsonify({'message': 'Learning material uploaded/updated successfully'}), 200
+    else:
+        return jsonify({'message': 'Unauthorized'}), 403
+
+# Teacher Delete Learning Material
+@app.route('/learning-material/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_learning_material(id):
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':
+        material = LearningMaterial.query.get(id)
+        if material:
+            db.session.delete(material)
+            db.session.commit()
+            return jsonify({'message': 'Material deleted'}), 200
+        return jsonify({'message': 'Material not found'}), 404
+    return jsonify({'message': 'Unauthorized'}), 403
+
+# Teacher Add Notifications for Parents
 @app.route('/notifications', methods=['POST'])
-@token_required  # Only token_required is used
-def post_notification(current_user):
-    data = request.get_json()
-    notification = Notifications(
-        message=data.get('message'),
-        parent_id=data.get('parent_id')
-    )
-    db.session.add(notification)
-    db.session.commit()
-    return notification.to_dict(), 201
-
-# Learning Material Routes
-@app.route('/learning-materials', methods=['GET'])
-@token_required
-def get_learning_materials(current_user):
-    learning_materials = LearningMaterial.query.all()
-    return jsonify([lm.to_dict() for lm in learning_materials]), 200
-
-@app.route('/upload', methods=['POST'])
-@token_required
-def upload_learning_material(current_user):
-    if 'file' not in request.files:
-        return {"error": "No file part"}, 400
-
-    file = request.files['file']
-    if file.filename == '':
-        return {"error": "No selected file"}, 400
-
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-
-        data = request.form
-        learning_material = LearningMaterial(
-            title=data.get('title'),
-            file_path=file_path,
-            teacher_id=current_user.id,
-            subject_id=data.get('subject_id')
+@jwt_required()
+def add_notification():
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':
+        data = request.get_json()
+        notification = Notifications(
+            message=data['message'],
+            parent_id=data['parent_id']
         )
-
-        db.session.add(learning_material)
+        db.session.add(notification)
         db.session.commit()
 
-        return {"message": "File uploaded successfully", "learning_material": learning_material.to_dict()}, 201
-    else:
-        return {"error": "Invalid file format"}, 400
+        return jsonify({'message': 'Notification sent'}), 200
+    return jsonify({'message': 'Unauthorized'}), 403
 
-@app.route('/download/<int:learning_material_id>', methods=['GET'])
-@token_required
-def download_learning_material(current_user, learning_material_id):
-    learning_material = LearningMaterial.query.get_or_404(learning_material_id)
-    file_path = learning_material.file_path
-    file_name = os.path.basename(file_path)
+# Parent View their Student Details
+@app.route('/students/<int:student_id>', methods=['GET'])
+@jwt_required()
+def get_student_details(student_id):
+    identity = get_jwt_identity()
+    if identity['role'] == 'Parent':
+        student = Student.query.filter_by(parent_id=identity['user_id'], id=student_id).first()
+        if student:
+            return jsonify(student.to_dict()), 200
+        return jsonify({'message': 'Student not found'}), 404
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    try:
-        return send_from_directory(app.config['UPLOAD_FOLDER'], file_name, as_attachment=True)
-    except FileNotFoundError:
-        return {"error": "File not found"}, 404
+# Parent Get Notifications
+@app.route('/notifications', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    identity = get_jwt_identity()
+    if identity['role'] == 'Parent':
+        notifications = Notifications.query.filter_by(parent_id=identity['user_id']).all()
+        return jsonify([notif.to_dict() for notif in notifications]), 200
+    return jsonify({'message': 'Unauthorized'}), 403
 
-# Password Reset Routes
-@app.route('/password-reset-request', methods=['POST'])
-def request_password_reset():
-    data = request.get_json()
-    email = data.get('email')
+# Parent Download Learning Materials
+@app.route('/learning-material', methods=['GET'])
+@jwt_required()
+def download_learning_material():
+    identity = get_jwt_identity()
+    if identity['role'] == 'Parent':
+        materials = LearningMaterial.query.all()
+        return jsonify([material.to_dict() for material in materials]), 200
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    user = Teacher.query.filter_by(email=email).first() or Parent.query.filter_by(email=email).first()
+@app.route('/class', methods=['POST'])
+@jwt_required()
+def create_class():
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or some admin role if applicable
+        data = request.get_json()
+        class_name = data.get('class_name')
+        if not class_name:
+            return jsonify({'message': 'Class name is required'}), 400
+        
+        new_class = Class(class_name=class_name, teacher_id=identity['user_id'])
+        db.session.add(new_class)
+        db.session.commit()
+        return jsonify({'message': 'Class created successfully', 'class': new_class.to_dict()}), 201
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    if not user:
-        return {"message": 'User not found'}, 404
+@app.route('/class/<int:class_id>', methods=['PUT'])
+@jwt_required()
+def update_class(class_id):
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or some admin role
+        data = request.get_json()
+        class_to_update = Class.query.get_or_404(class_id)
 
-    token = secrets.token_urlsafe(20)
-    expiry = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        # Ensure that the teacher who created the class is the one updating it
+        if class_to_update.teacher_id != identity['user_id']:
+            return jsonify({'message': 'Unauthorized to update this class'}), 403
 
-    reset_token = PasswordResetToken(user_id=user.id, token=token, expiry_date=expiry)
-    db.session.add(reset_token)
-    db.session.commit()
+        class_name = data.get('class_name')
+        if class_name:
+            class_to_update.class_name = class_name
 
-    reset_link = f"{app.config['FRONTEND_URL']}/reset-password?token={token}"
-    msg = Message('Password Reset Request', recipients=[email])
-    msg.body = f"Use the following link to reset your password: {reset_link}"
-    mail.send(msg)
+        db.session.commit()
+        return jsonify({'message': 'Class updated successfully', 'class': class_to_update.to_dict()}), 200
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    return {"message": 'Password reset link sent to your email.'}, 200
+@app.route('/class/<int:class_id>', methods=['DELETE'])
+@jwt_required()
+def delete_class(class_id):
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or some admin role
+        class_to_delete = Class.query.get_or_404(class_id)
 
-@app.route('/password-reset-confirm', methods=['POST'])
-def confirm_password_reset():
-    data = request.get_json()
-    token = data.get('token')
-    new_password = data.get('new_password')
+        # Ensure that the teacher who created the class is the one deleting it
+        if class_to_delete.teacher_id != identity['user_id']:
+            return jsonify({'message': 'Unauthorized to delete this class'}), 403
 
-    reset_token = PasswordResetToken.query.filter_by(token=token).first()
+        db.session.delete(class_to_delete)
+        db.session.commit()
+        return jsonify({'message': 'Class deleted successfully'}), 200
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    if not reset_token:
-        return {"message": 'Invalid or expired token'}, 400
+@app.route('/classes', methods=['GET'])
+@jwt_required()
+def get_classes():
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or any authorized role
+        classes = Class.query.filter_by(teacher_id=identity['user_id']).all()
+        return jsonify([c.to_dict() for c in classes]), 200
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    if reset_token.expiry_date < datetime.datetime.utcnow():
-        return {"message": 'Token has expired'}, 400
+@app.route('/subject', methods=['POST'])
+@jwt_required()
+def create_subject():
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or some admin role if applicable
+        data = request.get_json()
+        subject_name = data.get('subject_name')
+        subject_code = data.get('subject_code')
+        class_id = data.get('class_id')
 
-    user = Teacher.query.get(reset_token.user_id) or Parent.query.get(reset_token.user_id)
+        if not (subject_name and subject_code and class_id):
+            return jsonify({'message': 'Subject name, code, and class ID are required'}), 400
 
-    if not user:
-        return {"message": 'User not found'}, 404
+        new_subject = Subject(subject_name=subject_name, subject_code=subject_code, class_id=class_id, teacher_id=identity['user_id'])
+        db.session.add(new_subject)
+        db.session.commit()
+        return jsonify({'message': 'Subject created successfully', 'subject': new_subject.to_dict()}), 201
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
-    db.session.commit()
+@app.route('/subject/<int:subject_id>', methods=['PUT'])
+@jwt_required()
+def update_subject(subject_id):
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or some admin role
+        data = request.get_json()
+        subject_to_update = Subject.query.get_or_404(subject_id)
 
-    db.session.delete(reset_token)
-    db.session.commit()
+        # Ensure that the teacher who created the subject is the one updating it
+        if subject_to_update.teacher_id != identity['user_id']:
+            return jsonify({'message': 'Unauthorized to update this subject'}), 403
 
-    return {"message": 'Password has been updated successfully.'}, 200
+        subject_name = data.get('subject_name')
+        subject_code = data.get('subject_code')
 
-@app.route('/contact', methods=['POST'])
-def contact():
-    data = request.get_json()
-    name = data.get('name')
-    email = data.get('email')
-    message = data.get('message')
+        if subject_name:
+            subject_to_update.subject_name = subject_name
+        if subject_code:
+            subject_to_update.subject_code = subject_code
 
-    # Send an email with the contact form data
-    msg = Message(f"New Contact Form Submission from {name}", recipients=['your-email@example.com'])
-    msg.body = f"Message from {name} ({email}):\n\n{message}"
-    mail.send(msg)
+        db.session.commit()
+        return jsonify({'message': 'Subject updated successfully', 'subject': subject_to_update.to_dict()}), 200
+    return jsonify({'message': 'Unauthorized'}), 403
 
-    return jsonify({"message": "Message sent successfully!"}), 200
+@app.route('/subject/<int:subject_id>', methods=['DELETE'])
+@jwt_required()
+def delete_subject(subject_id):
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or some admin role
+        subject_to_delete = Subject.query.get_or_404(subject_id)
 
+        # Ensure that the teacher who created the subject is the one deleting it
+        if subject_to_delete.teacher_id != identity['user_id']:
+            return jsonify({'message': 'Unauthorized to delete this subject'}), 403
 
-# App execution point
+        db.session.delete(subject_to_delete)
+        db.session.commit()
+        return jsonify({'message': 'Subject deleted successfully'}), 200
+    return jsonify({'message': 'Unauthorized'}), 403
+
+@app.route('/class/<int:class_id>/subjects', methods=['GET'])
+@jwt_required()
+def get_subjects_for_class(class_id):
+    identity = get_jwt_identity()
+    if identity['role'] == 'Teacher':  # Or any authorized role
+        subjects = Subject.query.filter_by(class_id=class_id, teacher_id=identity['user_id']).all()
+        return jsonify([subject.to_dict() for subject in subjects]), 200
+    return jsonify({'message': 'Unauthorized'}), 403
+
 if __name__ == '__main__':
-    app.run(port=5555, debug=True)
+     app.run(port=5555, debug=True)
