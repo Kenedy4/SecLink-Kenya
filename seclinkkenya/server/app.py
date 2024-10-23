@@ -200,7 +200,7 @@ def add_notification():
 def get_student_details(student_id):
     identity = get_jwt_identity()
     if identity['role'] == 'Parent':
-        student = Student.query.filter_by(parent_id=identity['user_id'], id=student_id).first()
+        student = Student.query.filter_by(parent_id=identity['id'], id=student_id).first()
         if student:
             return jsonify(student.to_dict()), 200
         return jsonify({'message': 'Student not found'}), 404
@@ -212,7 +212,7 @@ def get_student_details(student_id):
 def get_notifications():
     identity = get_jwt_identity()
     if identity['role'] == 'Parent':
-        notifications = Notifications.query.filter_by(parent_id=identity['user_id']).all()
+        notifications = Notifications.query.filter_by(parent_id=identity['id']).all()
         return jsonify([notif.to_dict() for notif in notifications]), 200
     return jsonify({'message': 'Unauthorized'}), 403
 
@@ -352,7 +352,7 @@ def delete_subject(subject_id):
 def get_subjects_for_class(class_id):
     identity = get_jwt_identity()
     if identity['role'] == 'Teacher':  # Or any authorized role
-        subjects = Subject.query.filter_by(class_id=class_id, teacher_id=identity['user_id']).all()
+        subjects = Subject.query.filter_by(class_id=class_id, teacher_id=identity['id']).all()
         return jsonify([subject.to_dict() for subject in subjects]), 200
     return jsonify({'message': 'Unauthorized'}), 403
 
