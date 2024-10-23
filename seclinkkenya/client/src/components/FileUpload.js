@@ -14,7 +14,7 @@ function FileUpload() {
 
     const token = localStorage.getItem('token');
 
-    axios.post('http://localhost:5555/upload', formData, {
+    axios.post('https://seclink-server.onrender.com/upload', formData, {
       headers: { 
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data'

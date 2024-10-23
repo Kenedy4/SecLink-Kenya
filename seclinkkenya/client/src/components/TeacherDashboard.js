@@ -1,142 +1,107 @@
-import React, { useEffect, useState } from 'react';
-// import './TeacherDashboard.css'; // Make sure this file exists in the same folder
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 const TeacherDashboard = () => {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [learningMaterials, setLearningMaterials] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [materialTitle, setMaterialTitle] = useState("");
 
   // Fetch all students or by class ID
   const getStudents = async (classId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5555/students?class_id=${classId || ''}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `https://seclink-server.onrender.com/students`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { class_id: classId || "" }
         }
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setStudents(data);
-      } else {
-        console.error('Error fetching students:', data.message);
-      }
+      );
+      setStudents(response.data);
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error("Error fetching students:", error.response?.data?.message || error);
     }
   };
 
   // Fetch all classes
   const getClasses = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5555/classes', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const token = localStorage.getItem("token");
+      const response = await axios.get("https://seclink-server.onrender.com/classes", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
-      if (response.ok) {
-        setClasses(data);
-      } else {
-        console.error('Error fetching classes:', data.message);
-      }
+      setClasses(response.data);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      console.error("Error fetching classes:", error.response?.data?.message || error);
     }
   };
 
   // Fetch learning materials
   const getLearningMaterials = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5555/learning-material', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "https://seclink-server.onrender.com/learning-material",
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setLearningMaterials(data);
-      } else {
-        console.error('Error fetching learning materials:', data.message);
-      }
+      );
+      setLearningMaterials(response.data);
     } catch (error) {
-      console.error('Error fetching learning materials:', error);
+      console.error("Error fetching learning materials:", error.response?.data?.message || error);
     }
   };
 
   // Fetch notifications
   const getNotifications = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5555/notifications', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const token = localStorage.getItem("token");
+      const response = await axios.get("https://seclink-server.onrender.com/notifications", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
-      if (response.ok) {
-        setNotifications(data);
-      } else {
-        console.error('Error fetching notifications:', data.message);
-      }
+      setNotifications(response.data);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error("Error fetching notifications:", error.response?.data?.message || error);
     }
   };
 
   // Upload learning material
-  const uploadLearningMaterial = async (materialData) => {
+  const uploadLearningMaterial = async (event) => {
+    event.preventDefault();
+    if (!selectedFile || !materialTitle) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("title", materialTitle);
+
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5555/learning-material', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(materialData)
-      });
-      const data = await response.json();
-      if (response.ok) {
-        console.log('Learning material uploaded successfully', data);
-        getLearningMaterials(); // Refresh learning materials
-      } else {
-        console.error('Error uploading learning material:', data.message);
-      }
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "https://seclink-server.onrender.com/learning-material",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      console.log("Learning material uploaded successfully", response.data);
+      getLearningMaterials(); // Refresh learning materials
     } catch (error) {
-      console.error('Error uploading learning material:', error);
+      console.error("Error uploading learning material:", error.response?.data?.message || error);
     }
   };
 
-  // Add notification to parents
-  const addNotification = async (notificationData) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5555/notifications', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(notificationData)
-      });
-      const data = await response.json();
-      if (response.ok) {
-        console.log('Notification added successfully', data);
-        getNotifications(); // Refresh notifications
-      } else {
-        console.error('Error adding notification:', data.message);
-      }
-    } catch (error) {
-      console.error('Error adding notification:', error);
-    }
+  // Handle file input change
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
   };
 
   useEffect(() => {
@@ -214,10 +179,25 @@ const TeacherDashboard = () => {
             ))}
           </tbody>
         </table>
-        {/* Button to upload learning materials */}
-        <button onClick={() => uploadLearningMaterial({ title: 'New Material', file_path: '/path/to/file' })}>
-          Upload Learning Material
-        </button>
+
+        {/* Upload new learning material */}
+        <h3>Upload New Learning Material</h3>
+        <form onSubmit={uploadLearningMaterial}>
+          <label>
+            Title:
+            <input
+              type="text"
+              value={materialTitle}
+              onChange={(e) => setMaterialTitle(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Select File:
+            <input type="file" onChange={handleFileChange} required />
+          </label>
+          <button type="submit">Upload</button>
+        </form>
       </div>
 
       <div id="notifications">
@@ -240,10 +220,6 @@ const TeacherDashboard = () => {
             ))}
           </tbody>
         </table>
-        {/* Button to send notifications */}
-        <button onClick={() => addNotification({ message: "New notification for parents", parent_id: 1 })}>
-          Send Notification
-        </button>
       </div>
     </div>
   );

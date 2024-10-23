@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+// import Navbar from './Navbar';
 
 const ParentDashboard = () => {
   const [studentDetails, setStudentDetails] = useState({});
@@ -9,7 +10,7 @@ const ParentDashboard = () => {
   const getStudentDetails = async (studentId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5555/students/${studentId}`, {
+      const response = await fetch(`https://seclink-server.onrender.com/students/${studentId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -30,7 +31,7 @@ const ParentDashboard = () => {
   const getNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5555/notifications', {
+      const response = await fetch('https://seclink-server.onrender.com/notifications', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -51,7 +52,7 @@ const ParentDashboard = () => {
   const downloadLearningMaterials = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5555/learning-material', {
+      const response = await fetch('https://seclink-server.onrender.com/learning-material', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -134,7 +135,7 @@ const ParentDashboard = () => {
               <tr key={index}>
                 <td>{material.title}</td>
                 <td>
-                  <a href={`http://localhost:5555/download/${material.file_path}`} download>
+                  <a href={`https://seclink-server.onrender.com/download/${material.file_path}`} download>
                     Download
                   </a>
                 </td>

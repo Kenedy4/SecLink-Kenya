@@ -15,7 +15,7 @@ function ContactUs() {
       message: message,
     };
 
-    axios.post('http://localhost:5555/contact', contactData)
+    axios.post('https://seclink-server.onrender.com/contact', contactData)
       .then((response) => {
         alert('Message sent successfully!');
         setName('');

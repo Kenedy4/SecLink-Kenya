@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import ParentDashboard from "./ParentDashboard";
 import TeacherDashboard from "./TeacherDashboard";
@@ -27,7 +26,7 @@ function Dashboard() {
     // Send a request to the backend to log out
     axios
       .post(
-        "http://localhost:5555/logout",
+        "https://seclink-server.onrender.com/logout",
         {},
         {
           headers: {
@@ -53,12 +52,7 @@ function Dashboard() {
 
   return (
     <div>
-      {/* <h1>Dashboard</h1> */}
-      {/* Render dashboard content */}
       {isRole === "Parent" ? <ParentDashboard /> : <TeacherDashboard />}
-
-      {/* Logout button */}
-      <button onClick={handleLogout}>Logout</button>
     </div>
   );
 }

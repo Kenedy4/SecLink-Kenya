@@ -28,7 +28,9 @@ db.init_app(app)
 
 # Helper function to check allowed file extensions
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+    ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 # Error handler for internal server errors
@@ -126,7 +128,7 @@ def logout():
 @jwt_required()
 def view_students():
     identity = get_jwt_identity()
-    user = Teacher.query.get(identity['user_id'])
+    user = Teacher.query.get(identity['id'])
 
     if identity['role'] == 'Teacher':
         class_id = request.args.get('class_id')
@@ -142,27 +144,74 @@ def view_students():
 # Teacher Upload/Update Learning Materials
 @app.route('/learning-material', methods=['POST', 'PUT'])
 @jwt_required()
-def upload_learning_material():
+def upload_or_update_learning_material():
     identity = get_jwt_identity()
-    if identity['role'] == 'Teacher':
-        data = request.get_json()
-        if request.method == 'POST':
-            material = LearningMaterial(
-                title=data['title'],
-                file_path=data['file_path'],
-                teacher_id=identity['user_id']
-            )
-            db.session.add(material)
-            db.session.commit()
-        elif request.method == 'PUT':
-            material = LearningMaterial.query.get(data['id'])
-            material.title = data['title']
-            material.file_path = data['file_path']
-            db.session.commit()
 
-        return jsonify({'message': 'Learning material uploaded/updated successfully'}), 200
+    # Only Teachers can upload or update learning materials
+    if identity['role'] == 'Teacher':
+        
+        if request.method == 'POST':
+            # Handle file upload for new learning material
+            if 'file' not in request.files or not request.files['file']:
+                return jsonify({'message': 'No file provided'}), 400
+
+            file = request.files['file']
+            
+            # Validate file type using allowed_file function
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                
+                # Save the file to the specified path
+                try:
+                    file.save(file_path)
+                except Exception as e:
+                    return jsonify({'message': f'File could not be saved: {str(e)}'}), 500
+
+                # Create a new LearningMaterial entry in the database
+                material = LearningMaterial(
+                    title=request.form['title'],  # Title should be in form data
+                    file_path=file_path,
+                    teacher_id=identity['id']
+                )
+                db.session.add(material)
+                db.session.commit()
+
+                return jsonify({'message': 'Learning material uploaded successfully', 'file_path': file_path}), 200
+            else:
+                return jsonify({'message': 'Invalid file type'}), 400
+
+        elif request.method == 'PUT':
+            # Handle updating an existing learning material
+            if 'id' not in request.form:
+                return jsonify({'message': 'Material ID is required'}), 400
+            
+            # Find the material by ID
+            material = LearningMaterial.query.get(request.form['id'])
+            if not material:
+                return jsonify({'message': 'Learning material not found'}), 404
+
+            # Update the title if provided
+            if 'title' in request.form:
+                material.title = request.form['title']
+
+            # Handle file update if a file is provided
+            if 'file' in request.files and allowed_file(request.files['file'].filename):
+                file = request.files['file']
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+                try:
+                    file.save(file_path)
+                    material.file_path = file_path
+                except Exception as e:
+                    return jsonify({'message': f'File could not be saved: {str(e)}'}), 500
+
+            db.session.commit()
+            return jsonify({'message': 'Learning material updated successfully'}), 200
     else:
         return jsonify({'message': 'Unauthorized'}), 403
+
 
 # Teacher Delete Learning Material
 @app.route('/learning-material/<int:id>', methods=['DELETE'])
@@ -194,6 +243,8 @@ def add_notification():
 
         return jsonify({'message': 'Notification sent'}), 200
     return jsonify({'message': 'Unauthorized'}), 403
+
+
 
 # Parent View their Student Details
 @app.route('/students/<int:student_id>', methods=['GET'])
@@ -237,7 +288,7 @@ def create_class():
         if not class_name:
             return jsonify({'message': 'Class name is required'}), 400
         
-        new_class = Class(class_name=class_name, teacher_id=identity['user_id'])
+        new_class = Class(class_name=class_name, teacher_id=identity['id'])
         db.session.add(new_class)
         db.session.commit()
         return jsonify({'message': 'Class created successfully', 'class': new_class.to_dict()}), 201
@@ -252,7 +303,7 @@ def update_class(class_id):
         class_to_update = Class.query.get_or_404(class_id)
 
         # Ensure that the teacher who created the class is the one updating it
-        if class_to_update.teacher_id != identity['user_id']:
+        if class_to_update.teacher_id != identity['id']:
             return jsonify({'message': 'Unauthorized to update this class'}), 403
 
         class_name = data.get('class_name')
@@ -271,7 +322,7 @@ def delete_class(class_id):
         class_to_delete = Class.query.get_or_404(class_id)
 
         # Ensure that the teacher who created the class is the one deleting it
-        if class_to_delete.teacher_id != identity['user_id']:
+        if class_to_delete.teacher_id != identity['id']:
             return jsonify({'message': 'Unauthorized to delete this class'}), 403
 
         db.session.delete(class_to_delete)
@@ -302,7 +353,7 @@ def create_subject():
         if not (subject_name and subject_code and class_id):
             return jsonify({'message': 'Subject name, code, and class ID are required'}), 400
 
-        new_subject = Subject(subject_name=subject_name, subject_code=subject_code, class_id=class_id, teacher_id=identity['user_id'])
+        new_subject = Subject(subject_name=subject_name, subject_code=subject_code, class_id=class_id, teacher_id=identity['id'])
         db.session.add(new_subject)
         db.session.commit()
         return jsonify({'message': 'Subject created successfully', 'subject': new_subject.to_dict()}), 201
@@ -317,7 +368,7 @@ def update_subject(subject_id):
         subject_to_update = Subject.query.get_or_404(subject_id)
 
         # Ensure that the teacher who created the subject is the one updating it
-        if subject_to_update.teacher_id != identity['user_id']:
+        if subject_to_update.teacher_id != identity['id']:
             return jsonify({'message': 'Unauthorized to update this subject'}), 403
 
         subject_name = data.get('subject_name')
@@ -340,7 +391,7 @@ def delete_subject(subject_id):
         subject_to_delete = Subject.query.get_or_404(subject_id)
 
         # Ensure that the teacher who created the subject is the one deleting it
-        if subject_to_delete.teacher_id != identity['user_id']:
+        if subject_to_delete.teacher_id != identity['id']:
             return jsonify({'message': 'Unauthorized to delete this subject'}), 403
 
         db.session.delete(subject_to_delete)
