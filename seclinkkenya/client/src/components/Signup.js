@@ -8,30 +8,33 @@ function Signup() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("teacher");
-  const [loading, setLoading] = useState(false); // For submit button state
+  const [role, setRole] = useState("teacher"); // Default role is 'Teacher'
+  const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(""); // For inline error messages
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true); // Disable button and show loading state
-    setErrorMessage(""); // Reset error message
+    setLoading(true);
+    setErrorMessage("");
+
+    // Prepare data payload for the API
+    const payload = {
+      username,
+      name,
+      email,
+      password,
+      role,
+      subject: role === "teacher" ? subject : undefined, // Send subject only if role is teacher
+    };
 
     axios
-      .post("http://localhost:5555/signup", {
-        username,
-        name,
-        email,
-        subject,
-        password,
-        role,
-      })
+      .post("http://localhost:5555/signup", payload)
       .then((response) => {
         setSignupSuccess(true);
         setLoading(false);
-        setTimeout(() => navigate("/login"), 2000); // Redirect to login after 2 seconds
+        setTimeout(() => navigate("/login"), 2000);
       })
       .catch((error) => {
         setLoading(false);
@@ -43,8 +46,8 @@ function Signup() {
     <div className="card signup-card">
       <form onSubmit={handleSubmit}>
         <h2>Sign Up</h2>
-        
-        {errorMessage && <p className="error-message">{errorMessage}</p>} {/* Display error message */}
+
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
 
         <label>Username: </label>
         <input
@@ -70,13 +73,17 @@ function Signup() {
           required
         />
 
-        <label>Subject: </label>
-        <input
-          type="text"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          required
-        />
+        {role === "teacher" && (  // Conditionally render subject field for teachers
+          <>
+            <label>Subject: </label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required={role === "teacher"}  // Subject is required for teacher
+            />
+          </>
+        )}
 
         <label>Password: </label>
         <input

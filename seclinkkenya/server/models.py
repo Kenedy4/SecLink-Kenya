@@ -1,13 +1,24 @@
+import re
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_serializer import SerializerMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+# from werkzeug.security import generate_password_hash, check_password_hash
+from flask_bcrypt import generate_password_hash, check_password_hash
 from datetime import datetime
 from sqlalchemy.orm import validates
+from sqlalchemy import MetaData
 
-db = SQLAlchemy()
 
-# Association table for students and subjects (including student_name and class_id)
+metadata = MetaData(naming_convention={
+     "pk": "pk_%(table_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s"
+})
+
+db = SQLAlchemy(metadata=metadata)
+
+# Define the association table for students and subjects
 student_subject = db.Table('student_subject',
     db.Column('student_id', db.Integer, db.ForeignKey('students.id')),
     db.Column('student_name', db.String(100), nullable=False),
@@ -18,7 +29,7 @@ student_subject = db.Table('student_subject',
 # Base class for common user functionality
 class BaseUser(db.Model, SerializerMixin):
     __abstract__ = True
-    name = db.Column(db.String(100), nullable=False)  # Inherited by Teacher, Parent, and Student
+    name = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
@@ -35,11 +46,13 @@ class BaseUser(db.Model, SerializerMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
+    
     @validates('email')
-    def validate_email(self, key, address):
-        assert '@' in address, "Invalid email format"
-        return address
+    def validate_email(self, key, email):
+        email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        if not re.match(email_regex, email):
+            raise ValueError("Invalid email address")
+        return email
 
 class Teacher(BaseUser):
     __tablename__ = 'teachers'
@@ -60,7 +73,6 @@ class Teacher(BaseUser):
             'classes': [c.to_dict() for c in self.classes],
             'learning_materials': [lm.to_dict() for lm in self.learning_materials]
         }
-        
 
 class Parent(BaseUser):
     __tablename__ = 'parents'

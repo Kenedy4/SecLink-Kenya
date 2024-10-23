@@ -1,29 +1,22 @@
+// src/components/Navbar.js
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function Home() {
-  return (
-    <div>
-      <Navbar />
-      <h1>Welcome SecLink Kenya</h1>
-   
-    </div>
-  );
-}
-
-function Navbar() {
+function Navbar({ scrollToContact }) {
   return (
     <nav>
       <ul className="navbar">
         <li><Link to="/">Home</Link></li>
         <li><Link to="/about">About Us</Link></li>
+        <li><Link to="/dashboard">Dashboard</Link></li>
         <li><Link to="/signup">Signup</Link></li>
         <li><Link to="/login">Login</Link></li>
-        <li><Link to="/dashboard">Dashboard</Link></li>
-        <li><Link to="/contactus">Contact Us</Link></li>
+       
+        <li><Link to="#" onClick={scrollToContact}>Contact Us</Link></li>
       </ul>
     </nav>
   );
 }
 
-export default Home;
+export default Navbar;

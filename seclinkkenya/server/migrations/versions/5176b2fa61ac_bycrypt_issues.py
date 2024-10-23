@@ -1,8 +1,8 @@
-"""Fixed data base
+"""Bycrypt issues
 
-Revision ID: 5d140a712bbb
+Revision ID: 5176b2fa61ac
 Revises: 
-Create Date: 2024-10-21 20:40:58.127490
+Create Date: 2024-10-22 01:35:10.568199
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '5d140a712bbb'
+revision = '5176b2fa61ac'
 down_revision = None
 branch_labels = None
 depends_on = None
