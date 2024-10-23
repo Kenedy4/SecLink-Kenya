@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-const Dashboard = () => {
+const ParentDashboard = () => {
   const [studentDetails, setStudentDetails] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [learningMaterials, setLearningMaterials] = useState([]);
@@ -100,4 +100,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default ParentDashboard;

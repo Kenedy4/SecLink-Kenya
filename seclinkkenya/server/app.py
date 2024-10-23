@@ -107,7 +107,7 @@ def login():
     if bcrypt.check_password_hash(user.password_hash, data['password']):
         # If password is correct, generate a JWT token with the role included
         token = create_access_token(identity={"id": user.id, "role": user.__class__.__name__}, expires_delta=datetime.timedelta(hours=3))
-        return jsonify({"token": token}), 200
+        return jsonify({"token": token, "role": user.__class__.__name__}), 200
     else:
         return jsonify({"error": "Invalid credentials"}), 401  # If password is incorrect
 
@@ -282,8 +282,9 @@ def delete_class(class_id):
 @jwt_required()
 def get_classes():
     identity = get_jwt_identity()
+    print(f"identity {identity}")
     if identity['role'] == 'Teacher':  # Or any authorized role
-        classes = Class.query.filter_by(teacher_id=identity['user_id']).all()
+        classes = Class.query.filter_by(teacher_id=identity.get('id')).all()
         return jsonify([c.to_dict() for c in classes]), 200
     return jsonify({'message': 'Unauthorized'}), 403
 

@@ -20,8 +20,11 @@ function Auth() {
     axios
       .post("http://localhost:5555/login", { username, password })
       .then((response) => {
-        const token = response.data.access_token; // Ensure you use access_token from response
+        console.log(response)
+        const token = response.data.token; // Ensure you use access_token from response
         localStorage.setItem("token", token); // Store the token in localStorage
+        localStorage.setItem("role", response.data.role); // Store the token in localStorage
+
         setLoading(false);
         navigate("/dashboard"); // Redirect to dashboard
       })

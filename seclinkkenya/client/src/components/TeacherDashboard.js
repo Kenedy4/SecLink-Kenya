@@ -10,7 +10,7 @@ const TeacherDashboard = () => {
   const getStudents = async (classId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/students?class_id=${classId || ''}`, {
+      const response = await fetch(`http://localhost:5555/students?class_id=${classId || ''}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -31,7 +31,7 @@ const TeacherDashboard = () => {
   const getClasses = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/classes', {
+      const response = await fetch('http://localhost:5555/classes', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -52,7 +52,7 @@ const TeacherDashboard = () => {
   const uploadLearningMaterial = async (materialData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/learning-material', {
+      const response = await fetch('http://localhost:5555/learning-material', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,7 +76,7 @@ const TeacherDashboard = () => {
   const getLearningMaterials = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/learning-material', {
+      const response = await fetch('http://localhost:5555/learning-material', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -97,7 +97,7 @@ const TeacherDashboard = () => {
   const addNotification = async (notificationData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/notifications', {
+      const response = await fetch('http://localhost:5555/notifications', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -121,7 +121,7 @@ const TeacherDashboard = () => {
   const getNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/notifications', {
+      const response = await fetch('http://localhost:5555/notifications', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
