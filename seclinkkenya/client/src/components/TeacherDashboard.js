@@ -20,9 +20,12 @@ const TeacherDashboard = () => {
   // Fetch all students or by class ID
   const getStudents = useCallback(async () => {
     try {
-      const response = await axios.get("https://seclink-server.onrender.com/students", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "https://seclink-server.onrender.com/students",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setStudents(response.data);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -32,9 +35,12 @@ const TeacherDashboard = () => {
   // Fetch all classes
   const getClasses = useCallback(async () => {
     try {
-      const response = await axios.get("https://seclink-server.onrender.com/classes", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "https://seclink-server.onrender.com/classes",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setClasses(response.data);
     } catch (error) {
       console.error("Error fetching classes:", error);
@@ -44,9 +50,12 @@ const TeacherDashboard = () => {
   // Fetch learning materials
   const getLearningMaterials = useCallback(async () => {
     try {
-      const response = await axios.get("https://seclink-server.onrender.com/learning-material", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "https://seclink-server.onrender.com/learning-material",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setLearningMaterials(response.data);
     } catch (error) {
       console.error("Error fetching learning materials:", error);
@@ -56,9 +65,12 @@ const TeacherDashboard = () => {
   // Fetch notifications
   const getNotifications = useCallback(async () => {
     try {
-      const response = await axios.get("https://seclink-server.onrender.com/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "https://seclink-server.onrender.com/notifications",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setNotifications(response.data);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -68,9 +80,13 @@ const TeacherDashboard = () => {
   // Add New Student
   const addStudent = async () => {
     try {
-      await axios.post("https://seclink-server.onrender.com/students", studentDetails, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        "https://seclink-server.onrender.com/students",
+        studentDetails,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getStudents(); // Refresh the student list
       setStudentDetails({}); // Clear student details
     } catch (error) {
@@ -83,9 +99,13 @@ const TeacherDashboard = () => {
     if (!selectedStudent) return;
 
     try {
-      await axios.put(`https://seclink-server.onrender.com/students/${selectedStudent.id}`, studentDetails, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `https://seclink-server.onrender.com/students/${selectedStudent.id}`,
+        studentDetails,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getStudents(); // Refresh the student list
       setSelectedStudent(null); // Reset selection after update
       setStudentDetails({}); // Clear student details
@@ -97,9 +117,12 @@ const TeacherDashboard = () => {
   // Delete Student
   const deleteStudent = async (studentId) => {
     try {
-      await axios.delete(`https://seclink-server.onrender.com/students/${studentId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://seclink-server.onrender.com/students/${studentId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getStudents(); // Refresh the student list
     } catch (error) {
       console.error("Error deleting student:", error);
@@ -109,9 +132,13 @@ const TeacherDashboard = () => {
   // Add New Class
   const addClass = async () => {
     try {
-      await axios.post("https://seclink-server.onrender.com/classes", classDetails, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        "https://seclink-server.onrender.com/classes",
+        classDetails,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getClasses(); // Refresh the class list
       setClassDetails({}); // Clear class details
     } catch (error) {
@@ -122,9 +149,13 @@ const TeacherDashboard = () => {
   // Update Class
   const updateClass = async (classId) => {
     try {
-      await axios.put(`https://seclink-server.onrender.com/classes/${classId}`, classDetails, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `https://seclink-server.onrender.com/classes/${classId}`,
+        classDetails,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getClasses(); // Refresh the class list
       setClassDetails({}); // Clear class details
     } catch (error) {
@@ -135,9 +166,12 @@ const TeacherDashboard = () => {
   // Delete Class
   const deleteClass = async (classId) => {
     try {
-      await axios.delete(`https://seclink-server.onrender.com/classes/${classId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://seclink-server.onrender.com/classes/${classId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getClasses(); // Refresh the class list
     } catch (error) {
       console.error("Error deleting class:", error);
@@ -157,12 +191,16 @@ const TeacherDashboard = () => {
     formData.append("title", materialTitle);
 
     try {
-      await axios.post("https://seclink-server.onrender.com/learning-material", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await axios.post(
+        "https://seclink-server.onrender.com/learning-material",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       getLearningMaterials(); // Refresh learning materials
       setSelectedFile(null); // Clear selected file
       setMaterialTitle(""); // Clear title
@@ -174,9 +212,12 @@ const TeacherDashboard = () => {
   // Delete Learning Material
   const deleteLearningMaterial = async (materialId) => {
     try {
-      await axios.delete(`https://seclink-server.onrender.com/learning-material/${materialId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://seclink-server.onrender.com/learning-material/${materialId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getLearningMaterials(); // Refresh learning materials
     } catch (error) {
       console.error("Error deleting learning material:", error);
@@ -192,9 +233,13 @@ const TeacherDashboard = () => {
     };
 
     try {
-      await axios.post("https://seclink-server.onrender.com/notifications", notificationData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        "https://seclink-server.onrender.com/notifications",
+        notificationData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getNotifications(); // Refresh notifications
       setNotificationMessage(""); // Clear message
     } catch (error) {
@@ -211,9 +256,13 @@ const TeacherDashboard = () => {
     };
 
     try {
-      await axios.put(`https://seclink-server.onrender.com/notifications/${selectedNotification.id}`, updatedData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `https://seclink-server.onrender.com/notifications/${selectedNotification.id}`,
+        updatedData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       getNotifications(); // Refresh notifications
       setSelectedNotification(null); // Reset selection after update
       setNotificationMessage(""); // Clear message
@@ -253,20 +302,24 @@ const TeacherDashboard = () => {
                   <td>{student.name}</td>
                   <td>{student.class}</td>
                   <td>
-                    <button onClick={() => {
-                      setSelectedStudent(student);
-                      setStudentDetails({
-                        name: student.name,
-                        dob: student.dob,
-                        overall_grade: student.overall_grade,
-                        class_id: student.class_id,
-                        teacher_id: student.teacher_id,
-                        parent_id: student.parent_id
-                      });
-                    }}>
+                    <button
+                      onClick={() => {
+                        setSelectedStudent(student);
+                        setStudentDetails({
+                          name: student.name,
+                          dob: student.dob,
+                          overall_grade: student.overall_grade,
+                          class_id: student.class_id,
+                          teacher_id: student.teacher_id,
+                          parent_id: student.parent_id,
+                        });
+                      }}
+                    >
                       Update
                     </button>
-                    <button onClick={() => deleteStudent(student.id)}>Delete</button>
+                    <button onClick={() => deleteStudent(student.id)}>
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -277,27 +330,81 @@ const TeacherDashboard = () => {
         <form onSubmit={addStudent}>
           <label>
             Name:
-            <input type="text" value={studentDetails.name || ''} onChange={(e) => setStudentDetails({ ...studentDetails, name: e.target.value })} required />
+            <input
+              type="text"
+              value={studentDetails.name || ""}
+              onChange={(e) =>
+                setStudentDetails({ ...studentDetails, name: e.target.value })
+              }
+              required
+            />
           </label>
           <label>
             DOB:
-            <input type="date" value={studentDetails.dob || ''} onChange={(e) => setStudentDetails({ ...studentDetails, dob: e.target.value })} required />
+            <input
+              type="date"
+              value={studentDetails.dob || ""}
+              onChange={(e) =>
+                setStudentDetails({ ...studentDetails, dob: e.target.value })
+              }
+              required
+            />
           </label>
           <label>
             Overall Grade:
-            <input type="text" value={studentDetails.overall_grade || ''} onChange={(e) => setStudentDetails({ ...studentDetails, overall_grade: e.target.value })} required />
+            <input
+              type="text"
+              value={studentDetails.overall_grade || ""}
+              onChange={(e) =>
+                setStudentDetails({
+                  ...studentDetails,
+                  overall_grade: e.target.value,
+                })
+              }
+              required
+            />
           </label>
           <label>
             Class ID:
-            <input type="text" value={studentDetails.class_id || ''} onChange={(e) => setStudentDetails({ ...studentDetails, class_id: e.target.value })} required />
+            <input
+              type="text"
+              value={studentDetails.class_id || ""}
+              onChange={(e) =>
+                setStudentDetails({
+                  ...studentDetails,
+                  class_id: e.target.value,
+                })
+              }
+              required
+            />
           </label>
           <label>
             Teacher ID:
-            <input type="text" value={studentDetails.teacher_id || ''} onChange={(e) => setStudentDetails({ ...studentDetails, teacher_id: e.target.value })} required />
+            <input
+              type="text"
+              value={studentDetails.teacher_id || ""}
+              onChange={(e) =>
+                setStudentDetails({
+                  ...studentDetails,
+                  teacher_id: e.target.value,
+                })
+              }
+              required
+            />
           </label>
           <label>
             Parent ID:
-            <input type="text" value={studentDetails.parent_id || ''} onChange={(e) => setStudentDetails({ ...studentDetails, parent_id: e.target.value })} required />
+            <input
+              type="text"
+              value={studentDetails.parent_id || ""}
+              onChange={(e) =>
+                setStudentDetails({
+                  ...studentDetails,
+                  parent_id: e.target.value,
+                })
+              }
+              required
+            />
           </label>
           <button type="submit">Add Student</button>
         </form>
@@ -309,30 +416,92 @@ const TeacherDashboard = () => {
             <form onSubmit={updateStudent}>
               <label>
                 Name:
-                <input type="text" value={studentDetails.name} onChange={(e) => setStudentDetails({ ...studentDetails, name: e.target.value })} required />
+                <input
+                  type="text"
+                  value={studentDetails.name}
+                  onChange={(e) =>
+                    setStudentDetails({
+                      ...studentDetails,
+                      name: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <label>
                 DOB:
-                <input type="date" value={studentDetails.dob} onChange={(e) => setStudentDetails({ ...studentDetails, dob: e.target.value })} required />
+                <input
+                  type="date"
+                  value={studentDetails.dob}
+                  onChange={(e) =>
+                    setStudentDetails({
+                      ...studentDetails,
+                      dob: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <label>
                 Overall Grade:
-                <input type="text" value={studentDetails.overall_grade} onChange={(e) => setStudentDetails({ ...studentDetails, overall_grade: e.target.value })} required />
+                <input
+                  type="text"
+                  value={studentDetails.overall_grade}
+                  onChange={(e) =>
+                    setStudentDetails({
+                      ...studentDetails,
+                      overall_grade: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <label>
                 Class ID:
-                <input type="text" value={studentDetails.class_id} onChange={(e) => setStudentDetails({ ...studentDetails, class_id: e.target.value })} required />
+                <input
+                  type="text"
+                  value={studentDetails.class_id}
+                  onChange={(e) =>
+                    setStudentDetails({
+                      ...studentDetails,
+                      class_id: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <label>
                 Teacher ID:
-                <input type="text" value={studentDetails.teacher_id} onChange={(e) => setStudentDetails({ ...studentDetails, teacher_id: e.target.value })} required />
+                <input
+                  type="text"
+                  value={studentDetails.teacher_id}
+                  onChange={(e) =>
+                    setStudentDetails({
+                      ...studentDetails,
+                      teacher_id: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <label>
                 Parent ID:
-                <input type="text" value={studentDetails.parent_id} onChange={(e) => setStudentDetails({ ...studentDetails, parent_id: e.target.value })} required />
+                <input
+                  type="text"
+                  value={studentDetails.parent_id}
+                  onChange={(e) =>
+                    setStudentDetails({
+                      ...studentDetails,
+                      parent_id: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <button type="submit">Update</button>
-              <button type="button" onClick={() => setSelectedStudent(null)}>Cancel</button>
+              <button type="button" onClick={() => setSelectedStudent(null)}>
+                Cancel
+              </button>
             </form>
           </div>
         )}
@@ -358,16 +527,20 @@ const TeacherDashboard = () => {
                   <td>{classItem.name}</td>
                   <td>{classItem.teacher}</td>
                   <td>
-                    <button onClick={() => {
-                      setClassDetails({
-                        id: classItem.id,
-                        name: classItem.name,
-                        teacher_id: classItem.teacher_id
-                      });
-                    }}>
+                    <button
+                      onClick={() => {
+                        setClassDetails({
+                          id: classItem.id,
+                          name: classItem.name,
+                          teacher_id: classItem.teacher_id,
+                        });
+                      }}
+                    >
                       Update
                     </button>
-                    <button onClick={() => deleteClass(classItem.id)}>Delete</button>
+                    <button onClick={() => deleteClass(classItem.id)}>
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -378,11 +551,25 @@ const TeacherDashboard = () => {
         <form onSubmit={addClass}>
           <label>
             Class Name:
-            <input type="text" value={classDetails.class_name || ''} onChange={(e) => setClassDetails({ ...classDetails, class_name: e.target.value })} required />
+            <input
+              type="text"
+              value={classDetails.class_name || ""}
+              onChange={(e) =>
+                setClassDetails({ ...classDetails, class_name: e.target.value })
+              }
+              required
+            />
           </label>
           <label>
             Teacher ID:
-            <input type="text" value={classDetails.teacher_id || ''} onChange={(e) => setClassDetails({ ...classDetails, teacher_id: e.target.value })} required />
+            <input
+              type="text"
+              value={classDetails.teacher_id || ""}
+              onChange={(e) =>
+                setClassDetails({ ...classDetails, teacher_id: e.target.value })
+              }
+              required
+            />
           </label>
           <button type="submit">Add Class</button>
         </form>
@@ -394,14 +581,36 @@ const TeacherDashboard = () => {
             <form onSubmit={() => updateClass(classDetails.id)}>
               <label>
                 Class Name:
-                <input type="text" value={classDetails.class_name} onChange={(e) => setClassDetails({ ...classDetails, class_name: e.target.value })} required />
+                <input
+                  type="text"
+                  value={classDetails.class_name}
+                  onChange={(e) =>
+                    setClassDetails({
+                      ...classDetails,
+                      class_name: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <label>
                 Teacher ID:
-                <input type="text" value={classDetails.teacher_id} onChange={(e) => setClassDetails({ ...classDetails, teacher_id: e.target.value })} required />
+                <input
+                  type="text"
+                  value={classDetails.teacher_id}
+                  onChange={(e) =>
+                    setClassDetails({
+                      ...classDetails,
+                      teacher_id: e.target.value,
+                    })
+                  }
+                  required
+                />
               </label>
               <button type="submit">Update</button>
-              <button type="button" onClick={() => setClassDetails({})}>Cancel</button>
+              <button type="button" onClick={() => setClassDetails({})}>
+                Cancel
+              </button>
             </form>
           </div>
         )}
@@ -425,7 +634,9 @@ const TeacherDashboard = () => {
                   <td>{material.id}</td>
                   <td>{material.title}</td>
                   <td>
-                    <button onClick={() => deleteLearningMaterial(material.id)}>Delete</button>
+                    <button onClick={() => deleteLearningMaterial(material.id)}>
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -436,11 +647,20 @@ const TeacherDashboard = () => {
         <form onSubmit={uploadLearningMaterial}>
           <label>
             Title:
-            <input type="text" value={materialTitle} onChange={(e) => setMaterialTitle(e.target.value)} required />
+            <input
+              type="text"
+              value={materialTitle}
+              onChange={(e) => setMaterialTitle(e.target.value)}
+              required
+            />
           </label>
           <label>
             Select File:
-            <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} required />
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files[0])}
+              required
+            />
           </label>
           <button type="submit">Upload</button>
         </form>
@@ -466,10 +686,12 @@ const TeacherDashboard = () => {
                   <td>{notification.message}</td>
                   <td>{notification.date}</td>
                   <td>
-                    <button onClick={() => {
-                      setSelectedNotification(notification); // Set the selected notification for update
-                      setNotificationMessage(notification.message); // Populate the message
-                    }}>
+                    <button
+                      onClick={() => {
+                        setSelectedNotification(notification); // Set the selected notification for update
+                        setNotificationMessage(notification.message); // Populate the message
+                      }}
+                    >
                       Update
                     </button>
                   </td>
@@ -497,7 +719,9 @@ const TeacherDashboard = () => {
           <select onChange={(e) => setSelectedClassId(e.target.value)} required>
             <option value="">Select Class</option>
             {classes.map((classItem) => (
-              <option key={classItem.id} value={classItem.id}>{classItem.name}</option>
+              <option key={classItem.id} value={classItem.id}>
+                {classItem.name}
+              </option>
             ))}
           </select>
         )}
@@ -518,7 +742,12 @@ const TeacherDashboard = () => {
                 />
               </label>
               <button type="submit">Update</button>
-              <button type="button" onClick={() => setSelectedNotification(null)}>Cancel</button>
+              <button
+                type="button"
+                onClick={() => setSelectedNotification(null)}
+              >
+                Cancel
+              </button>
             </form>
           </div>
         )}

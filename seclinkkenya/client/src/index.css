@@ -273,7 +273,8 @@ table tr {
   transition: background-color 0.3s ease; /* Smooth transition for hover */
 }
 
-table th, table td {
+table th,
+table td {
   transition: background-color 0.3s ease; /* Smooth transition for cell hover */
 }
 
@@ -283,7 +284,12 @@ table th, table td {
     margin: 0; /* Remove side margins for smaller screens */
   }
 
-  table, thead, tbody, th, td, tr {
+  table,
+  thead,
+  tbody,
+  th,
+  td,
+  tr {
     display: block;
     width: 100%;
   }

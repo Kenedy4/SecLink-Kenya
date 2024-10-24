@@ -73,14 +73,14 @@ function Signup() {
           required
         />
 
-        {role === "teacher" && (  // Conditionally render subject field for teachers
+        {role === "teacher" && ( // Conditionally render subject field for teachers
           <>
             <label>Subject: </label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              required={role === "teacher"}  // Subject is required for teacher
+              required={role === "teacher"} // Subject is required for teacher
             />
           </>
         )}
