@@ -11,7 +11,7 @@ function Auth() {
   const [loading, setLoading] = useState(false); // To track button state
   const [errorMessage, setErrorMessage] = useState(""); // For inline error handling
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);  // Access the login function from AuthContext
+  const { login } = useContext(AuthContext); // Access the login function from AuthContext
 
   // Login function
   const handleLoginSubmit = (e) => {
@@ -20,13 +20,16 @@ function Auth() {
     setErrorMessage(""); // Clear error messages
 
     axios
-      .post("https://seclink-server.onrender.com//login", { username, password })
+      .post("https://seclink-server.onrender.com//login", {
+        username,
+        password,
+      })
       .then((response) => {
         const token = response.data.token;
         localStorage.setItem("token", token); // Store the token in localStorage
         localStorage.setItem("role", response.data.role); // Store role if needed
 
-        login();  // Call login function from AuthContext to update isLoggedIn state
+        login(); // Call login function from AuthContext to update isLoggedIn state
 
         setLoading(false);
         navigate("/dashboard"); // Redirect to dashboard
@@ -44,7 +47,9 @@ function Auth() {
     setErrorMessage("");
 
     axios
-      .post("https://seclink-server.onrender.com/password-reset-request", { email })
+      .post("https://seclink-server.onrender.com/password-reset-request", {
+        email,
+      })
       .then((response) => {
         setLoading(false);
         alert(response.data.message);
