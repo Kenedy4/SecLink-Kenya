@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-// import Navbar from './Navbar';
+import axios from "axios";
 
 const ParentDashboard = () => {
   const [studentDetails, setStudentDetails] = useState({});
@@ -10,23 +10,20 @@ const ParentDashboard = () => {
   const getStudentDetails = async (studentId) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      const response = await axios.get(
         `https://seclink-server.onrender.com/students/${studentId}`,
         {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      const data = await response.json();
-      if (response.ok) {
-        setStudentDetails(data);
-      } else {
-        console.error("Error fetching student details:", data.message);
-      }
+      setStudentDetails(response.data);
     } catch (error) {
-      console.error("Error fetching student details:", error);
+      console.error(
+        "Error fetching student details:",
+        error.response?.data?.message || error.message
+      );
     }
   };
 
@@ -34,23 +31,20 @@ const ParentDashboard = () => {
   const getNotifications = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      const response = await axios.get(
         "https://seclink-server.onrender.com/notifications",
         {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      const data = await response.json();
-      if (response.ok) {
-        setNotifications(data);
-      } else {
-        console.error("Error fetching notifications:", data.message);
-      }
+      setNotifications(response.data);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.error(
+        "Error fetching notifications:",
+        error.response?.data?.message || error.message
+      );
     }
   };
 
@@ -58,23 +52,20 @@ const ParentDashboard = () => {
   const downloadLearningMaterials = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      const response = await axios.get(
         "https://seclink-server.onrender.com/learning-material",
         {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      const data = await response.json();
-      if (response.ok) {
-        setLearningMaterials(data);
-      } else {
-        console.error("Error fetching learning materials:", data.message);
-      }
+      setLearningMaterials(response.data);
     } catch (error) {
-      console.error("Error fetching learning materials:", error);
+      console.error(
+        "Error fetching learning materials:",
+        error.response?.data?.message || error.message
+      );
     }
   };
 
@@ -92,20 +83,28 @@ const ParentDashboard = () => {
 
       <div id="studentDetails">
         <h2>Student Details</h2>
-        <div class="table-container">
+        <div className="table-container">
           <table>
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Name</th>
                 <th>Class</th>
                 <th>Age</th>
+                <th>Subject</th>
+                <th>Overall Grade</th>
+                <th>Parent ID</th>
               </tr>
             </thead>
             <tbody>
               <tr>
+                <td>{studentDetails.id}</td>
                 <td>{studentDetails.name}</td>
                 <td>{studentDetails.class_name}</td>
                 <td>{studentDetails.age}</td>
+                <td>{studentDetails.subject}</td>
+                <td>{studentDetails.overall_grade}</td>
+                <td>{studentDetails.parent_id}</td>
               </tr>
             </tbody>
           </table>
@@ -114,7 +113,7 @@ const ParentDashboard = () => {
 
       <div id="notifications">
         <h2>Notifications</h2>
-        <div class="table-container">
+        <div className="table-container">
           <table>
             <thead>
               <tr>
@@ -136,7 +135,7 @@ const ParentDashboard = () => {
 
       <div id="learningMaterials">
         <h2>Learning Materials</h2>
-        <div class="table-container">
+        <div className="table-container">
           <table>
             <thead>
               <tr>
