@@ -9,7 +9,7 @@ function Logout() {
     localStorage.removeItem("token");
 
     // Optionally, you can call the backend logout endpoint if you are blacklisting tokens
-    fetch("http://localhost:5555/logout", {
+    fetch("https://seclink-server.onrender.com/logout", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -26,11 +26,7 @@ function Logout() {
     navigate("/login");
   };
 
-  return (
-    <button onClick={handleLogout}>
-      Logout
-    </button>
-  );
+  return <button onClick={handleLogout}>Logout</button>;
 }
 
 export default Logout;

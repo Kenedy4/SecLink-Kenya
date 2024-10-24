@@ -1,7 +1,7 @@
 from flask import Flask
 from models import db, Teacher, Parent, Student, Class, Subject, Grade, Notifications, LearningMaterial
 from flask_bcrypt import Bcrypt
-from datetime import datetime
+from datetime import datetime, date, timezone  # Import timezone for UTC datetime
 from config import Config  # Import your app's config
 
 # Initialize Flask app and configuration
@@ -12,120 +12,145 @@ app.config.from_object(Config)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
-# Seed data function
 def seed_data():
+    # Ensure all operations happen within the app context
     with app.app_context():
         # Drop all existing tables and recreate them (be cautious in production environments)
         db.drop_all()  # Warning: This will delete all data in the database
         db.create_all()
 
-        # Create teachers
-        teacher1 = Teacher(
-            name="Alice Johnson",
-            username="alicej",
-            email="alice@example.com",
-            password_hash=bcrypt.generate_password_hash("password123").decode('utf-8'),
-            subject="Math"
+        # Create sample data for Teachers
+        teacher_1 = Teacher(
+            name="Fredrick Kariuki",
+            username="kariukifred",
+            email="fredrichkkariuki@gmail.com",
+            password="password123",
+            subject="Mathematics"
         )
 
-        teacher2 = Teacher(
-            name="Bob Smith",
-            username="bobsmith",
-            email="bob@example.com",
-            password_hash=bcrypt.generate_password_hash("password123").decode('utf-8'),
+        teacher_2 = Teacher(
+            name="Jane Katiwa",
+            username="katiwasm",
+            email="katiwasmith@gmail.com",
+            password="password123",
             subject="Science"
         )
 
-        # Create parents
-        parent1 = Parent(
-            name="John Doe",
-            username="johndoe",
-            email="john@example.com",
-            password_hash=bcrypt.generate_password_hash("password123").decode('utf-8')
+        # Create sample data for Parents
+        parent_1 = Parent(
+            name="Michael Angels",
+            username="mjohnson",
+            email="mangels@gmail.com",
+            password="password123"
         )
 
-        parent2 = Parent(
-            name="Jane Roe",
-            username="janeroe",
-            email="jane@example.com",
-            password_hash=bcrypt.generate_password_hash("password123").decode('utf-8')
+        parent_2 = Parent(
+            name="Sarah Achieng",
+            username="Sarachieng",
+            email="sachieng@gmail.com",
+            password="password123"
         )
 
-        # Add the teachers and parents to the session and commit to generate IDs
-        db.session.add_all([teacher1, teacher2, parent1, parent2])
-        db.session.commit()  # Commit to generate the IDs for teachers and parents
-
-        # Create classes
-        class1 = Class(class_name="Math 101", teacher_id=teacher1.id)
-        class2 = Class(class_name="Science 101", teacher_id=teacher2.id)
-
-        # Add classes to the session and commit to generate IDs
-        db.session.add_all([class1, class2])
-        db.session.commit()
-
-        # Create subjects and commit them to ensure subject_id is available
-        subject1 = Subject(subject_name="Algebra", subject_code="MTH101", class_id=class1.id, teacher_id=teacher1.id)
-        subject2 = Subject(subject_name="Physics", subject_code="SCI101", class_id=class2.id, teacher_id=teacher2.id)
-
-        db.session.add_all([subject1, subject2])
-        db.session.commit()  # Commit subjects to generate IDs
-
-        # Create students with the correct teacher_id
-        student1 = Student(
-            name="Sam Doe",
-            username="samdoe",
-            email="sam@example.com",
-            password_hash=bcrypt.generate_password_hash("password123").decode('utf-8'),
-            dob=datetime.strptime("2008-05-12", "%Y-%m-%d").date(),
-            class_id=class1.id,
-            teacher_id=teacher1.id,  # Assign teacher1 as the teacher
-            parent_id=parent1.id
-        )
-        student2 = Student(
-            name="Emily Roe",
-            username="emilyroe",
-            email="emily@example.com",
-            password_hash=bcrypt.generate_password_hash("password123").decode('utf-8'),
-            dob=datetime.strptime("2009-06-22", "%Y-%m-%d").date(),
-            class_id=class2.id,
-            teacher_id=teacher2.id,  # Assign teacher2 as the teacher
-            parent_id=parent2.id
+        # Create sample data for Students (using `date` for dob and `datetime` for created_at)
+        student_1 = Student(
+            name="Augustine Musyoki",
+            dob=date(2010, 5, 14),  # Convert dob to `date` object
+            class_id=1,
+            teacher_id=1,
+            parent_id=1,
+            overall_grade="A",
+            created_at=datetime.now(timezone.utc)  # Set the current time for created_at with timezone
         )
 
-        # Add students to the session and commit to generate IDs
-        db.session.add_all([student1, student2])
-        db.session.commit()
+        student_2 = Student(
+            name="Filcitity Ndanu",
+            dob=date(2009, 8, 22),  # Convert dob to `date` object
+            class_id=2,
+            teacher_id=2,
+            parent_id=2,
+            overall_grade="B",
+            created_at=datetime.now(timezone.utc)  # Set the current time for created_at with timezone
+        )
 
-        # Create grades with valid subject_id
-        grade1 = Grade(grade="A", student_id=student1.id, subject_id=subject1.id)  # Ensure subject1.id is set
-        grade2 = Grade(grade="B", student_id=student2.id, subject_id=subject2.id)  # Ensure subject2.id is set
+        # Create sample data for Classes
+        class_1 = Class(
+            class_name="Math Class",
+            teacher_id=1
+        )
 
-        # Create notifications
-        notification1 = Notifications(message="Parent-teacher meeting", parent_id=parent1.id)
-        notification2 = Notifications(message="Field trip permission", parent_id=parent2.id)
+        class_2 = Class(
+            class_name="Science Class",
+            teacher_id=2
+        )
 
-        # Create learning materials with valid student_id
-        learning_material1 = LearningMaterial(
+        # Create sample data for Subjects
+        subject_1 = Subject(
+            subject_name="Algebra",
+            subject_code="MATH101",
+            class_id=1,
+            teacher_id=1
+        )
+
+        subject_2 = Subject(
+            subject_name="Physics",
+            subject_code="SCI101",
+            class_id=2,
+            teacher_id=2
+        )
+
+        # Create sample data for Grades
+        grade_1 = Grade(
+            grade="A",
+            student_id=1,
+            subject_id=1
+        )
+
+        grade_2 = Grade(
+            grade="B",
+            student_id=2,
+            subject_id=2
+        )
+
+        # Create sample data for Learning Materials
+        learning_material_1 = LearningMaterial(
             title="Algebra Basics",
-            file_path="/path/to/algebra.pdf",
-            teacher_id=teacher1.id,
-            student_id=student1.id  # Ensure student1's ID is set here
-        )
-        learning_material2 = LearningMaterial(
-            title="Physics Principles",
-            file_path="/path/to/physics.pdf",
-            teacher_id=teacher2.id,
-            student_id=student2.id  # Ensure student2's ID is set here
+            file_path="/materials/algebra_basics.pdf",
+            teacher_id=1,
+            student_id=1
         )
 
-        # Add all remaining objects to session
-        db.session.add_all([grade1, grade2, notification1, notification2, learning_material1, learning_material2])
+        learning_material_2 = LearningMaterial(
+            title="Physics 101",
+            file_path="/materials/physics_101.pdf",
+            teacher_id=2,
+            student_id=2
+        )
 
-        # Commit the session to write to the database
+        # Create sample data for Notifications
+        notification_1 = Notifications(
+            message="Parent-teacher meeting scheduled for next week.",
+            parent_id=1
+        )
+
+        notification_2 = Notifications(
+            message="School fees deadline approaching.",
+            parent_id=2
+        )
+
+        # Add everything to the session and commit
+        db.session.add_all([
+            teacher_1, teacher_2, 
+            parent_1, parent_2, 
+            student_1, student_2, 
+            class_1, class_2, 
+            subject_1, subject_2, 
+            grade_1, grade_2, 
+            learning_material_1, learning_material_2,
+            notification_1, notification_2
+        ])
         db.session.commit()
 
         print("Database seeded successfully!")
 
-# Run seed function
 if __name__ == '__main__':
     seed_data()
