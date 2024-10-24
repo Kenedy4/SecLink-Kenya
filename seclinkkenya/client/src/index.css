@@ -212,10 +212,14 @@ footer .social-icons a:hover {
   }
 }
 
-/* Stylying Parent DashBoard */
 /* General Container Styling */
-div {
-  margin: 0 10%; /* Added margin for the container */
+/* Container for the table to add margin */
+.table-container {
+  margin: 20px 10%; /* 10% margin on left and right sides */
+  padding: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Optional: Adds a slight shadow for aesthetics */
+  background-color: #fff; /* Background color for container */
+  border-radius: 8px; /* Optional: Rounded corners for aesthetics */
 }
 
 /* General Table Styling */
@@ -275,11 +279,15 @@ table th, table td {
 
 /* Responsive Table */
 @media screen and (max-width: 600px) {
+  .table-container {
+    margin: 0; /* Remove side margins for smaller screens */
+  }
+
   table, thead, tbody, th, td, tr {
     display: block;
     width: 100%;
   }
-  
+
   th {
     position: relative;
     top: 0;
@@ -288,7 +296,7 @@ table th, table td {
 
   td {
     text-align: left;
-    padding-left: 20%;
+    padding-left: 50%;
     position: relative;
   }
 
@@ -296,7 +304,7 @@ table th, table td {
     content: attr(data-label);
     position: absolute;
     left: 0;
-    width: 20%;
+    width: 50%;
     padding-left: 10px;
     font-weight: bold;
     text-align: left;

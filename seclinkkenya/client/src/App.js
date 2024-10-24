@@ -1,14 +1,14 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Navbar from './components/Navbar';  
-import Home from './components/Home';
-import Signup from './components/Signup';
-import Login from './components/Login';
-import AboutUs from './components/AboutUs';
-import Dashboard from './components/Dashboard';
-import ContactUs from './components/ContactUs';
-import Footer from './components/Footer';
-import { AuthProvider } from './context/AuthContext';  
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Home from "./components/Home";
+import Signup from "./components/Signup";
+import Login from "./components/Login";
+import AboutUs from "./components/AboutUs";
+import Dashboard from "./components/Dashboard";
+import ContactUs from "./components/ContactUs";
+import Footer from "./components/Footer";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (

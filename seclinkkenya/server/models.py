@@ -92,10 +92,12 @@ class Parent(BaseUser):
             'notifications': [notification.to_dict() for notification in self.notifications]
         }
 
-class Student(BaseUser):
+class Student(db.Model, SerializerMixin):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
     dob = db.Column(db.Date, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.Date, nullable=False)
     overall_grade = db.Column(db.String(2), nullable=True)
 
     # Foreign keys and relationships
