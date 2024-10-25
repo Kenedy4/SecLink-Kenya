@@ -54,6 +54,9 @@ This project is a full-stack applicatiaaon built using a **Flask** backend and a
    ```bash
    git@github.com:Kenedy4/SecLink-Kenya.git
    ```
+   ```
+   Here is the live link to the system: []
+   ```
 
 #### 2. Navigate to the project directory:
    ```bash
@@ -78,7 +81,7 @@ This project is a full-stack applicatiaaon built using a **Flask** backend and a
      ```
    - Frontend:
      ```bash
-     npm start
+     python client npm start
      ```
 
 #### 6. Database Setup and Migration:
@@ -94,19 +97,9 @@ This project is a full-stack applicatiaaon built using a **Flask** backend and a
    python server/seed.py
    ```
 
-## Endpoints
-
-1. **[GET /api/resources]**: Fetch all resources.
-2. **[POST /api/resources]**: Create a new resource.
-3. **[GET /api/resources/:id]**: Fetch a specific resource by ID.
-4. **[PUT /api/resources/:id]**: Update a specific resource.
-5. **[DELETE /api/resources/:id]**: Delete a specific resource by ID.
-
-## Client-Side Routes
-
-1. **Home**: Displays a list of resources.
-2. **Create Resource**: Form to create a new resource with validation.
-3. **Details Page**: Displays details of a specific resource.
+## System Functionalities:
+-- This is a school management system that allows teachers to create accounts and start managing clases, students as well as sharing important notifications with the parants. Similarly, it anables them to upload learning materails and update classs and students detals.
+-- On the other hand, a parent can also create accounts with the system and they will be able to see the student information. Consequently, they can also download the learning materails.
 
 ## License
 
