@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ParentDashboard from "./ParentDashboard";
 import TeacherDashboard from "./TeacherDashboard";
+import axios from "axios";
 
 function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
