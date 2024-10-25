@@ -55,8 +55,8 @@ This project is a full-stack applicatiaaon built using a **Flask** backend and a
    git@github.com:Kenedy4/SecLink-Kenya.git
    ```
    ```
-   Here is the live link to the system: []
-   ```
+   Here is the live link to the system: [https://seclink-kenya-1.onrender.com/]
+   ``` 
 
 #### 2. Navigate to the project directory:
    ```bash
