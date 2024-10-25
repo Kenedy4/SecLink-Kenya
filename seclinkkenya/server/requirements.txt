@@ -26,7 +26,7 @@ python-dotenv==1.0.1
 pytz==2024.2
 setuptools==70.3.0
 six==1.16.0
-SQLAlchemy==2.0.36
+SQLAlchemy==2.0.29  
 sqlalchemy-serializer==1.4.22
 typing_extensions==4.12.2
 Werkzeug==3.0.4
