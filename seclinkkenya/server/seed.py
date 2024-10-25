@@ -3,6 +3,7 @@ from models import db, Teacher, Parent, Student, Class, Subject, Grade, Notifica
 from flask_bcrypt import Bcrypt
 from datetime import datetime, date, timezone
 from config import Config
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -21,7 +22,8 @@ def seed_data():
                 name="Fredrick Kariuki",
                 username="kariukifred",
                 email="fredrichkkariuki@gmail.com",
-                password=bcrypt.generate_password_hash("password123").decode('utf-8'),
+                # password=bcrypt.generate_password_hash("password123").decode('utf-8'),
+                password = generate_password_hash('password123', method='pbkdf2:sha256'),
                 subject="Mathematics"
             )
             
@@ -29,7 +31,8 @@ def seed_data():
                 name="Jane Katiwa",
                 username="katiwasm",
                 email="katiwasmith@gmail.com",
-                password=bcrypt.generate_password_hash("password123").decode('utf-8'),
+                # password=bcrypt.generate_password_hash("password123").decode('utf-8'),
+                password = generate_password_hash('password123', method='pbkdf2:sha256'),
                 subject="Science"
             )
 
@@ -38,14 +41,16 @@ def seed_data():
                 name="Michael Angels",
                 username="mjohnson",
                 email="mangels@gmail.com",
-                password=bcrypt.generate_password_hash("password123").decode('utf-8')
+                # password=bcrypt.generate_password_hash("password123").decode('utf-8')
+                password = generate_password_hash('password123', method='pbkdf2:sha256')
             )
 
             parent_2 = Parent(
                 name="Sarah Achieng",
                 username="Sarachieng",
                 email="sachieng@gmail.com",
-                password=bcrypt.generate_password_hash("password123").decode('utf-8')
+                # password=bcrypt.generate_password_hash("password123").decode('utf-8')
+                password = generate_password_hash('password123', method='pbkdf2:sha256')
             )
 
             # Sample Classes

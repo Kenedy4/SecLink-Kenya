@@ -21,7 +21,7 @@ const TeacherDashboard = () => {
   const getStudents = useCallback(async () => {
     try {
       const response = await axios.get(
-        "https://seclink-server.onrender.com/students",
+        "http://127.0.0.1:5555/students",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -80,13 +80,9 @@ const TeacherDashboard = () => {
   // Add New Student
   const addStudent = async () => {
     try {
-      await axios.post(
-        "https://seclink-server.onrender.com/students",
-        studentDetails,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.post("http://127.0.0.1:5555/add-student", studentDetails, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       getStudents(); // Refresh the student list
       setStudentDetails({}); // Clear student details
     } catch (error) {
@@ -99,8 +95,8 @@ const TeacherDashboard = () => {
     if (!selectedStudent) return;
 
     try {
-      await axios.put(
-        `https://seclink-server.onrender.com/students/${selectedStudent.id}`,
+      await axios.patch(
+        `http://127.0.0.1:5555/students/${selectedStudent.id}`,
         studentDetails,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -118,7 +114,7 @@ const TeacherDashboard = () => {
   const deleteStudent = async (studentId) => {
     try {
       await axios.delete(
-        `https://seclink-server.onrender.com/students/${studentId}`,
+        `http://127.0.0.1:5555/students/${studentId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -132,13 +128,9 @@ const TeacherDashboard = () => {
   // Add New Class
   const addClass = async () => {
     try {
-      await axios.post(
-        "https://seclink-server.onrender.com/classes",
-        classDetails,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.post("http://127.0.0.1:5555/class", classDetails, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       getClasses(); // Refresh the class list
       setClassDetails({}); // Clear class details
     } catch (error) {
@@ -167,7 +159,7 @@ const TeacherDashboard = () => {
   const deleteClass = async (classId) => {
     try {
       await axios.delete(
-        `https://seclink-server.onrender.com/classes/${classId}`,
+        `http://127.0.0.1:5555/class/${classId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -300,7 +292,7 @@ const TeacherDashboard = () => {
                 <tr key={student.id}>
                   <td>{student.id}</td>
                   <td>{student.name}</td>
-                  <td>{student.class}</td>
+                  <td>{student.class_name}</td>
                   <td>
                     <button
                       onClick={() => {

@@ -1,12 +1,18 @@
 import os
 from functools import wraps
-from flask import Flask, jsonify, request, send_from_directory, session
+from flask import Flask, jsonify, make_response, request, send_from_directory, session
 from models import Class, LearningMaterial, Notifications, Student, Subject, db, Teacher, Parent, PasswordResetToken  # Import necessary models
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+import random 
+import string
+import base64
+import jwt
+from sqlalchemy.exc import SQLAlchemyError
 from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, get_jwt, jwt_required, get_jwt_identity
-import datetime
+from flask_jwt_extended import  get_jwt, jwt_required, get_jwt_identity
+from datetime import datetime, timedelta
 import secrets
 from flask_mail import Mail, Message
 from flask_cors import CORS
@@ -17,15 +23,16 @@ app = Flask(__name__)
 app.config.from_object(Config)  # Load configuration from config.py
 
 # Initialize extensions
-migrate = Migrate(app, db)
+
 bcrypt = Bcrypt(app)
-jwt = JWTManager(app)
+# jwt = JWTManager(app)
 mail = Mail(app)
 CORS(app)
 
 # Initialize the database
 db.init_app(app)
-
+migrate = Migrate(app, db)
+secret_key = base64.b64encode(os.urandom(24)).decode('utf-8')
 # Helper function to check allowed file extensions
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx'}
@@ -59,24 +66,24 @@ def signup():
     role = data.get('role')  # Either 'Teacher' or 'Parent'
 
     # Check if all required fields are provided
-    if not (name and username and password and email and role):
+    if not all([name, username, password, email, role]):
         return jsonify({'message': 'All fields are required'}), 400
 
     # Hash the password using bcrypt
-    password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
     # Handle role-based registration
-    if role == 'teacher':
+    if role.lower() == 'teacher':
         # Check if the subject is provided for the Teacher role
         if not subject:
             return jsonify({'message': 'Subject is required for Teacher role'}), 400
         
         # Create a new Teacher user
-        new_user = Teacher(name=name, username=username, email=email, password_hash=password_hash, subject=subject)
+        new_user = Teacher(name=name, username=username, email=email, password=hashed_password, subject=subject)
 
-    elif role == 'parent':
+    elif role.lower() == 'parent':
         # Create a new Parent user
-        new_user = Parent(name=name, username=username, email=email, password_hash=password_hash)
+        new_user = Parent(name=name, username=username, email=email, password=hashed_password)
 
     else:
         return jsonify({'message': 'Invalid role'}), 400
@@ -95,23 +102,35 @@ def login():
     data = request.get_json()
 
     # Ensure required fields are present
-    if not data or not all(key in data for key in ['username', 'password']):
-        return jsonify({"error": "Missing required fields"}), 400
+    username = data.get('username')
+    password = data.get('password')
+
+    if not all([username, password]):
+        return jsonify({"message": "Missing required fields"}), 400
 
     # Query both Teacher and Parent tables for the user
-    user = Teacher.query.filter_by(username=data['username']).first() or \
-           Parent.query.filter_by(username=data['username']).first()
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404  # If no user is found
-
-    # Use bcrypt to compare the entered password with the hashed password in the database
-    if bcrypt.check_password_hash(user.password_hash, data['password']):
-        # If password is correct, generate a JWT token with the role included
-        token = create_access_token(identity={"id": user.id, "role": user.__class__.__name__}, expires_delta=datetime.timedelta(hours=3))
-        return jsonify({"token": token, "role": user.__class__.__name__}), 200
+    user = Teacher.query.filter_by(username=username).first() or \
+        Parent.query.filter_by(username=username).first()
+           
+    if user and check_password_hash(user.password, password):   
+        expiration_time = datetime.utcnow() + timedelta(hours=3)
+        
+        token = jwt.encode({'user_id': user.id, 'exp': expiration_time}, secret_key, algorithm='HS256')
+        
+        return jsonify({'token': token, 'message': 'Login Successful'}), 200
     else:
-        return jsonify({"error": "Invalid credentials"}), 401  # If password is incorrect
+        return jsonify({"message": "Invalid credentials"}), 401  # If username or password is incorrect
+
+
+# Token decoding helper function
+def decode_token(token):
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {'message': 'Token has expired'}, 401  # Token expired
+    except jwt.InvalidTokenError:
+        return {'message': 'Invalid token'}, 401  # Invalid token
 
 @app.route('/logout', methods=['POST'])
 @jwt_required()  # Ensure the user is logged in
@@ -123,41 +142,145 @@ def logout():
     return jsonify({"message": "Logged out successfully"}), 200
 
 ## Route to manage students ##
-def manage_students(student_id):
-    identity = get_jwt_identity()  # Retrieve user identity from JWT token
+@app.route('/add-student', methods=['POST'])
+def add_student():
+    data = request.get_json()
 
-    if identity['role'] == 'Parent':
-        if student_id:
-            # Parents can only access their own child
-            student = Student.query.filter_by(parent_id=identity['id'], id=student_id).first()
+    # Extract the fields from the request data
+    name = data.get('name')
+    dob = data.get('dob')  # Expected to be in string format
+    overall_grade = data.get('overall_grade')
+    class_id = data.get('class_id')
+    teacher_id = data.get('teacher_id')
+    parent_id = data.get('parent_id')
+
+    # Check if all required fields are provided
+    if not all([name, dob, overall_grade, class_id, teacher_id, parent_id]):
+        return jsonify({'message': 'All fields are required'}), 400
+
+    # Check if the class, teacher, and parent exist in the database
+    try:
+        student_class = Class.query.get(class_id)
+        teacher = Teacher.query.get(teacher_id)
+        parent = Parent.query.get(parent_id)
+    except SQLAlchemyError as e:
+        return jsonify({'message': 'Database lookup failed', 'error': str(e)}), 500
+
+    if not student_class:
+        return jsonify({'message': f'Class with id {class_id} not found'}), 404
+    if not teacher:
+        return jsonify({'message': f'Teacher with id {teacher_id} not found'}), 404
+    if not parent:
+        return jsonify({'message': f'Parent with id {parent_id} not found'}), 404
+
+    # Create a new Student
+    new_student = Student(
+        name=name,
+        dob=dob,  # dob remains in string format
+        overall_grade=overall_grade,
+        class_id=class_id,
+        teacher_id=teacher_id,
+        parent_id=parent_id,
+        created_at=datetime.utcnow()  # Automatically set created_at
+    )
+
+    # Add the new student to the database with error handling
+    try:
+        db.session.add(new_student)
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'message': 'Failed to add student', 'error': str(e)}), 500
+
+    # Return success message
+    return jsonify({'message': 'Student added successfully'}), 200
+
+@app.route('/students/<int:id>', methods=['GET', 'PATCH', 'DELETE'])
+def studend_by_id(id):
+   student = Student.query.filter(Student.id == id).first()
+  
+   if student == None:
+       return jsonify({"message": "Student not found."}), 404
+   else:       
+       if request.method == 'GET':
+           student_dict = {
+               "id": student.id,
+               "name": student.name,
+               "dob": student.dob,
+               "class_id": student.class_id,
+               "teacher_id": student.teacher_id,
+               "parent_id": student.parent_id,
+               "overall_grade": student.overall_grade
+              
+           }
+           return jsonify(student_dict), 200
+      
+       elif request.method == 'PATCH':
+           try:               
+               data = request.get_json()
+               name = data.get('name')
+               dob = data.get('dob')
+               class_id = data.get('class_id')
+               teacher_id = data.get('teacher_id')
+               parent_id = data.get('parent_id')
+               overall_grade = data.get('overall_grade')
+  
+               if not name and not dob and not class_id and not teacher_id and not parent_id and not overall_grade:
+                   return jsonify({"errors": "All fields are required."}), 400
+  
+               # Update the student data
+               student.name = name
+               student.dob = dob
+               student.class_id = class_id
+               student.teacher_id = teacher_id
+               student.parent_id = parent_id
+               student.overall_grade = overall_grade
+              
+               db.session.add(student)
+               db.session.commit()
+              
+               # Response after successful student update
+               updated_student_dict = {
+                   "id": student.id,
+                   "name": student.name,
+                   "dob": student.dob,
+                   "class_id":student.class_id,
+                   "teacher_id": student.teacher_id,
+                   "pranet_id": student.parent_id,
+                   "overall_grade": student.overall_grade,
+                   }
+               return jsonify(updated_student_dict), 200
+          
+           # Handle validation errors
+           except ValueError as ve:
+               return jsonify({"errors": [str(ve)]}), 400
+           
+           # Fetch the student by its id
+       elif request.method == 'DELETE':
+            student = Student.query.filter_by(id=id).first()
+
+
             if not student:
-                return jsonify({'message': 'Student not found'}), 404
-            return jsonify(student.to_dict()), 200
-        else:
-            # Parents can access all of their own children
-            students = Student.query.filter_by(parent_id=identity['id']).all()
+                return make_response(jsonify({"errors": ["Student not found"]}), 404)
 
-    elif identity['role'] == 'Teacher':
-        if student_id:
-            # Teachers can access any student by ID (in their class, for example)
-            student = Student.query.filter_by(id=student_id).first()
-            if not student:
-                return jsonify({'message': 'Student not found'}), 404
-            return jsonify(student.to_dict()), 200
-        else:
-            # Teachers can access all students, optionally filtering by class_id
-            class_id = request.args.get('class_id')
-            if class_id:
-                students = Student.query.filter_by(class_id=class_id).all()
-            else:
-                students = Student.query.all()
-    else:
-        return jsonify({'message': 'Unauthorized'}), 403
 
-    # Build and return the list of students if no specific student_id is provided
-    student_list = [{"id": student.id, "name": student.name, "dob": student.dob.isoformat(),
-                     "class_id": student.class_id, "overall_grade": student.overall_grade} for student in students]
-    return jsonify(student_list), 200
+            try:
+                # Delete the student
+                db.session.delete(student)
+                db.session.commit()
+                return make_response(jsonify({"message": "Student deleted successfully"}), 200)
+
+
+            except Exception as e:
+                db.session.rollback() 
+                return make_response(jsonify({"errors": [str(e)]}), 500)
+
+@app.route('/students', methods=['GET'])
+def get_students():
+    students = Student.query.all()
+    students_to_dict = [student.to_dict() for student in students]  # Convert each student to a dictionary
+    return jsonify(students_to_dict), 200
+ 
 
 ##  Routes to Manage Learning Materials ##
 @app.route('/learning-material', methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -317,66 +440,80 @@ def manage_notifications():
 
 ##  Route To Manage Classes ##
 
-@app.route('/class', methods=['POST', 'PUT', 'DELETE'])
-@jwt_required()
-def manage_class():
-    identity = get_jwt_identity()
+@app.route('/class', methods=['POST'])
+def add_class():
+    data = request.get_json()
 
-    # Check if the user has a 'Teacher' role (or Admin role if applicable)
-    if identity['role'] != 'Teacher' and identity['role'] != 'Admin':
-        return jsonify({'message': 'Unauthorized'}), 403
+    # Extract the fields from the request data
+    class_name = data.get('class_name')
+    teacher_id = data.get('teacher_id')
 
-    if request.method == 'POST':
-        # Handle class creation
-        data = request.get_json()
-        class_name = data.get('class_name')
-        if not class_name:
-            return jsonify({'message': 'Class name is required'}), 400
+    # Check if all required fields are provided
+    if not all([class_name, teacher_id]):
+        return jsonify({'message': 'All fields are required'}), 400
 
-        new_class = Class(class_name=class_name, teacher_id=identity['id'])
+    # Check if the teacher exists
+    try:
+        teacher = Teacher.query.get(teacher_id)
+    except SQLAlchemyError as e:
+        return jsonify({'message': 'Database lookup failed', 'error': str(e)}), 500
+
+    if not teacher:
+        return jsonify({'message': f'Teacher with id {teacher_id} not found'}), 404
+
+    # Create a new Class
+    new_class = Class(
+        class_name=class_name,
+        teacher_id=teacher_id,
+    )
+
+    #Add the new class to the database with error handling
+    try:
         db.session.add(new_class)
         db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'message': 'Failed to create a class', 'error': str(e)}), 500
 
-        return jsonify({'message': 'Class created successfully', 'class': new_class.to_dict()}), 201
+    # #Return success message
+    # return jsonify({'message': 'Class created successfully'}), 200
+    # elif request.method == 'PUT':
+    #     # Handle class update
+    #     class_id = request.args.get('class_id')
+    #     if not class_id:
+    #         return jsonify({'message': 'Class ID is required for update'}), 400
 
-    elif request.method == 'PUT':
-        # Handle class update
-        class_id = request.args.get('class_id')
-        if not class_id:
-            return jsonify({'message': 'Class ID is required for update'}), 400
+    #     class_to_update = Class.query.get_or_404(class_id)
 
-        class_to_update = Class.query.get_or_404(class_id)
+    #     # Ensure that the teacher who created the class or an Admin is updating
+    #     if class_to_update.teacher_id != identity['id'] and identity['role'] != 'Admin':
+    #         return jsonify({'message': 'Unauthorized to update this class'}), 403
 
-        # Ensure that the teacher who created the class is the one updating it
-        if class_to_update.teacher_id != identity['id']:
-            return jsonify({'message': 'Unauthorized to update this class'}), 403
+    #     data = request.get_json()
+    #     class_name = data.get('class_name')
+    #     if class_name:
+    #         class_to_update.class_name = class_name
 
-        data = request.get_json()
-        class_name = data.get('class_name')
-        if class_name:
-            class_to_update.class_name = class_name
+    #     db.session.commit()
+    #     return jsonify({'message': 'Class updated successfully', 'class': class_to_update.to_dict()}), 200
 
-        db.session.commit()
-        return jsonify({'message': 'Class updated successfully', 'class': class_to_update.to_dict()}), 200
+    # elif request.method == 'DELETE':
+    #     # Handle class deletion
+    #     class_id = request.args.get('class_id')
+    #     if not class_id:
+    #         return jsonify({'message': 'Class ID is required for deletion'}), 400
 
-    elif request.method == 'DELETE':
-        # Handle class deletion
-        class_id = request.args.get('class_id')
-        if not class_id:
-            return jsonify({'message': 'Class ID is required for deletion'}), 400
+    #     class_to_delete = Class.query.get_or_404(class_id)
 
-        class_to_delete = Class.query.get_or_404(class_id)
+    #     # Ensure that the teacher who created the class or an Admin is deleting
+    #     if class_to_delete.teacher_id != identity['id'] and identity['role'] != 'Admin':
+    #         return jsonify({'message': 'Unauthorized to delete this class'}), 403
 
-        # Ensure that the teacher who created the class is the one deleting it
-        if class_to_delete.teacher_id != identity['id']:
-            return jsonify({'message': 'Unauthorized to delete this class'}), 403
+    #     db.session.delete(class_to_delete)
+    #     db.session.commit()
+    #     return jsonify({'message': 'Class deleted successfully'}), 200
 
-        db.session.delete(class_to_delete)
-        db.session.commit()
-        return jsonify({'message': 'Class deleted successfully'}), 200
-
-    return jsonify({'message': 'Invalid request method'}), 405  # In case a method other than POST, PUT, or DELETE is used
-
+    # return jsonify({'message': 'Invalid request method'}), 405  # Invalid HTTP method
 
 @app.route('/classes', methods=['GET'])
 @jwt_required()

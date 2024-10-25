@@ -20,7 +20,7 @@ function Auth() {
     setErrorMessage(""); // Clear error messages
 
     axios
-      .post("https://seclink-server.onrender.com//login", {
+      .post("http://127.0.0.1:5555/login", {
         username,
         password,
       })

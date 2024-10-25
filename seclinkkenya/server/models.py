@@ -7,6 +7,7 @@ from flask_bcrypt import generate_password_hash, check_password_hash
 from datetime import datetime
 from sqlalchemy.orm import validates
 from sqlalchemy import MetaData
+from sqlalchemy.orm import relationship
 
 
 metadata = MetaData(naming_convention={
@@ -32,20 +33,20 @@ class BaseUser(db.Model, SerializerMixin):
     name = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    @hybrid_property
-    def password(self):
-        return self.password_hash
+    # @hybrid_property
+    # def password(self):
+    #     return self.password_hash
 
-    @password.setter
-    def password(self, plaintext_password):
-        if plaintext_password:
-            self.password_hash = generate_password_hash(plaintext_password)
+    # @password.setter
+    # def password(self, plaintext_password):
+    #     if plaintext_password:
+    #         self.password_hash = generate_password_hash(plaintext_password)
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+    # def check_password(self, password):
+    #     return check_password_hash(self.password_hash, password)
     
     @validates('email')
     def validate_email(self, key, email):
@@ -62,6 +63,7 @@ class Teacher(BaseUser):
     # Relationships
     classes = db.relationship('Class', backref='teacher')
     learning_materials = db.relationship('LearningMaterial', backref='uploader')
+    students = relationship('Student', back_populates='teacher')  # One-to-Many relationship
 
     def to_dict(self):
         return {
@@ -81,6 +83,7 @@ class Parent(BaseUser):
     # Relationships
     children = db.relationship('Student', back_populates='parent', foreign_keys='Student.parent_id')
     notifications = db.relationship('Notifications', back_populates='parent', cascade="all, delete-orphan")
+    students = relationship('Student', back_populates='parent')  # One-to-Many relationship
 
     def to_dict(self):
         return {
@@ -94,33 +97,34 @@ class Parent(BaseUser):
 
 class Student(db.Model, SerializerMixin):
     __tablename__ = 'students'
+
     id = db.Column(db.Integer, primary_key=True)
-    dob = db.Column(db.Date, nullable=False)
+    dob = db.Column(db.String, nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     overall_grade = db.Column(db.String(2), nullable=True)
 
-    # Foreign keys and relationships
+    # Foreign keys
     class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey('parents.id'), nullable=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey('parents.id'), nullable=False)
 
-    parent = db.relationship('Parent', back_populates='children', foreign_keys=[parent_id])
-    grades = db.relationship('Grade', backref='student', lazy=True, cascade="all, delete-orphan")
-    subjects = db.relationship('Subject', secondary=student_subject, backref='students')
+    # Relationships
+    classes = relationship('Class', back_populates='students')  # Use class_ instead of class to avoid keyword conflict
+    teacher = relationship('Teacher', back_populates='students')
+    parent = relationship('Parent', back_populates='students')
 
     def to_dict(self):
         return {
             'id': self.id,
-            'name': self.name,  # Inherited from BaseUser
-            'dob': self.dob.isoformat(),
+            'name': self.name,
+            'dob': self.dob,
             'class_id': self.class_id,
             'teacher_id': self.teacher_id,
             'parent_id': self.parent_id,
             'overall_grade': self.overall_grade,
-            'grades': [grade.to_dict() for grade in self.grades],
-            'subjects': [subject.to_dict() for subject in self.subjects]
         }
+
 
 class Grade(db.Model, SerializerMixin):
     __tablename__ = 'grades'
@@ -142,11 +146,13 @@ class Grade(db.Model, SerializerMixin):
 
 class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
+
     id = db.Column(db.Integer, primary_key=True)
     class_name = db.Column(db.String(50), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
 
-    subjects = db.relationship('Subject', backref='class')
+    subjects = db.relationship('Subject', backref='classes')
+    students = db.relationship('Student', back_populates='classes')  # Ensure back_populates points to class_
 
     def to_dict(self):
         return {
