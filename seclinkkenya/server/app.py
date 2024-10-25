@@ -612,4 +612,5 @@ def get_subjects_for_class(class_id):
     return jsonify({'message': 'Unauthorized'}), 403
 
 if __name__ == '__main__':
-     app.run(port=5555, debug=True)
+     port = int(os.environ.get("PORT", 5555))  # Use the PORT environment variable or default to 5555
+     app.run(host='0.0.0.0', port=port)  # Bind to 0.0.0.0 and the port variable
