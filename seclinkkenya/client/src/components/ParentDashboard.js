@@ -11,7 +11,7 @@ const ParentDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `https://seclink-server.onrender.com/students/${studentId}`,
+        `https://seclink-kenya.onrender.com/students/${studentId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -32,7 +32,7 @@ const ParentDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://seclink-server.onrender.com/notifications",
+        "https://seclink-kenya.onrender.com/notifications",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -53,7 +53,7 @@ const ParentDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://seclink-server.onrender.com/learning-material",
+        "https://seclink-kenya.onrender.com/learning-material",
         {
           headers: {
             Authorization: `Bearer ${token}`,
