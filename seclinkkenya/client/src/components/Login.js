@@ -20,7 +20,7 @@ function Auth() {
     setErrorMessage(""); // Clear error messages
 
     axios
-      .post("http://127.0.0.1:5555/login", {
+      .post("https://seclink-kenya.onrender.com/login", {
         username,
         password,
       })
@@ -47,7 +47,7 @@ function Auth() {
     setErrorMessage("");
 
     axios
-      .post("https://seclink-server.onrender.com/password-reset-request", {
+      .post("https://seclink-kenya.onrender.com/password-reset-request", {
         email,
       })
       .then((response) => {

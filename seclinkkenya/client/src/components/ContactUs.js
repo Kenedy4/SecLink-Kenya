@@ -16,7 +16,7 @@ function ContactUs() {
     };
 
     axios
-      .post("https://seclink-server.onrender.com/contact", contactData)
+      .post("https://seclink-kenya.onrender.com/contact", contactData)
       .then((response) => {
         alert("Message sent successfully!");
         setName("");

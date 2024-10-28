@@ -9,7 +9,7 @@ function Logout() {
     localStorage.removeItem("token");
 
     // Optionally, you can call the backend logout endpoint if you are blacklisting tokens
-    fetch("https://seclink-server.onrender.com/logout", {
+    fetch("https://seclink-kenya.onrender.com/logout", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
