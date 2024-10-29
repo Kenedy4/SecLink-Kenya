@@ -27,7 +27,7 @@ function Dashboard() {
     // Send a request to the backend to log out
     axios
       .post(
-        "https://seclink-kenya.onrender.comlogout",
+        "https://seclink-kenya.onrender.com/logout",
         {},
         {
           headers: {
