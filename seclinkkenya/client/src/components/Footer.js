@@ -12,6 +12,7 @@ function Footer() {
 
   return (
     <footer>
+      <div className = "form-group">
       <h2>Contact Us</h2>
       <form onSubmit={handleSubmit}>
         <label>Name: </label>
@@ -38,7 +39,24 @@ function Footer() {
         ></textarea>
 
         <button type="submit">Send Message</button>
-      </form>
+      </form> </div>
+      
+      <div class="social-media">
+        <a href="https://www.facebook.com/seclinkkenya/" class="fab fa-facebook">
+        Follow us on Facebook 
+        </a>
+        <a href="https://www.instagram.com/seclinkkenya/" class="fab fa-instagram">
+          Follow us on Instagram
+        </a>
+        <a href="https://twitter.com/seclinkkenya/" class="fab fa-twitter">
+          Follow us on Twitter
+        </a>
+        <a href="https://www.linkedin.com/company/seclink-kenya/" class="fab fa-linkedin">
+          Follow us on LinkedIn
+        </a>
+      </div>
+      <p> &copy; 2024 SecLink Kenya. All rights reserved.</p>
+
     </footer>
   );
 }
